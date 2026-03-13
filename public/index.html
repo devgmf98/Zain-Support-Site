@@ -1319,6 +1319,29 @@
             });
         }
 
+        // Idle timeout setup - 15 minutes
+        const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
+        let idleTimer = null;
+        let lastActivityTime = Date.now();
+
+        function resetIdleTimer() {
+            lastActivityTime = Date.now();
+            clearTimeout(idleTimer);
+            
+            idleTimer = setTimeout(() => {
+                console.log('[Auto-Logout] User idle for 15 minutes. Logging out...');
+                showToast('Session expired due to inactivity. Please log in again.', 'info');
+                logout();
+            }, IDLE_TIMEOUT);
+        }
+
+        function setupIdleTimeoutListeners() {
+            const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+            events.forEach(event => {
+                document.addEventListener(event, resetIdleTimer, true);
+            });
+        }
+
         // Check authentication on page load
         window.addEventListener('load', async () => {
             try {
@@ -1338,6 +1361,10 @@
                 await loadRestrictedCategories();
                 await loadRestrictedStatuses();
                 await loadRestrictedNumbers();
+
+                // Initialize idle timeout for auto-logout after 15 minutes of inactivity
+                setupIdleTimeoutListeners();
+                resetIdleTimer();
             } catch (error) {
                 console.error('Error checking authentication:', error);
                 window.location.href = '/';
