@@ -1277,6 +1277,7 @@
         let currentUserRole = 'staff'; // Default to staff, will be updated on login
         let restrictedCategories = []; // Store restricted categories list
         let restrictedStatuses = []; // Store restricted statuses list
+        let restrictedPrefixes = []; // Store restricted prefixes list
         
         const statusForm = document.getElementById('statusForm');
         const bulkStatusForm = document.getElementById('bulkStatusForm');
@@ -1294,6 +1295,23 @@
                 "'": '&#039;'
             };
             return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Helper function to normalize numbers (remove non-digits)
+        function normalizeNumber(s) {
+            return s ? s.toString().replace(/[^0-9]/g, '') : '';
+        }
+
+        // Helper function to check if mobile number matches any restricted prefix
+        function matchesRestrictedPrefix(mobileNumber) {
+            const normalized = normalizeNumber(mobileNumber);
+            return restrictedPrefixes.some(prefix => {
+                const p = normalizeNumber(prefix);
+                if (!normalized || !p) return false;
+                // Check common variants: p, 0p, 92p, 0092p
+                const variants = [p, '0' + p, '92' + p, '0092' + p];
+                return variants.some(v => normalized.startsWith(v));
+            });
         }
 
         // Check authentication on page load
@@ -1314,6 +1332,7 @@
                 // This ensures they're available for all operations
                 await loadRestrictedCategories();
                 await loadRestrictedStatuses();
+                await loadRestrictedNumbers();
             } catch (error) {
                 console.error('Error checking authentication:', error);
                 window.location.href = '/';
@@ -1518,7 +1537,8 @@
                             successCount++;
                             const isRestrictedCategory = data.data.categoryCode && restrictedCategories.includes(data.data.categoryCode);
                             const isRestrictedStatus = data.data.status && restrictedStatuses.includes(data.data.status.toUpperCase());
-                            const hasRestriction = isRestrictedCategory || isRestrictedStatus;
+                            const isRestrictedPrefixMatch = matchesRestrictedPrefix(data.data.mobileNumber);
+                            const hasRestriction = isRestrictedCategory || isRestrictedStatus || isRestrictedPrefixMatch;
                             
                             let freeButtonHTML;
                             if (hasRestriction) {
@@ -1545,6 +1565,7 @@
                                     <td style="padding: 11px 13px; color: #333; font-size: 13px;">
                                         <span style="padding: 4px 8px; background: ${isRestrictedStatus ? '#ffebee' : '#f0f4ff'}; color: ${isRestrictedStatus ? '#f44336' : '#667eea'}; border-radius: 4px; display: inline-block; font-weight: 600; font-size: 12px;">${data.data.status || 'N/A'}</span>
                                         ${isRestrictedStatus ? `<span style="margin-left: 6px; padding: 2px 6px; background: #f44336; color: white; border-radius: 3px; font-size: 10px; font-weight: 600;">RESTRICTED</span>` : ''}
+                                        ${isRestrictedPrefixMatch ? `<span style="margin-left: 6px; padding: 2px 6px; background: #f44336; color: white; border-radius: 3px; font-size: 10px; font-weight: 600;">PREFIX</span>` : ''}
                                     </td>
                                     <td style="padding: 11px 13px; text-align: center;">
                                         ${freeButtonHTML}
@@ -1967,7 +1988,11 @@
                     const listDiv = document.getElementById('restrictedNumbersList');
                     const emptyMsg = document.getElementById('emptyMessage');
 
+                    // Store restricted prefixes globally
+                    restrictedPrefixes = numbers.map(num => num.prefix);
+
                     if (numbers.length === 0) {
+                        restrictedPrefixes = [];
                         listDiv.style.display = 'none';
                         emptyMsg.textContent = 'No restricted prefixes found';
                         return;

@@ -3753,26 +3753,41 @@ app.post('/api/free-category', requireAuth, async (req, res) => {
     const isStatusRestricted = currentStatus && restrictedStatusesCache.includes(currentStatus.toUpperCase());
     const isCategoryRestricted = currentCategory && restrictedCategoriesCache.includes(currentCategory);
 
-    // If either status or category is restricted, only admins can free
-    if (isStatusRestricted || isCategoryRestricted) {
+    // Check if mobile number matches any restricted prefix - only admins can free
+    const restrictedPrefixCheckQuery = `SELECT PREFIX FROM RESTRICTED_NUMBERS_PREFIX`;
+    const restrictedPrefixResult = await connection.execute(restrictedPrefixCheckQuery);
+    const restrictedPrefixes = restrictedPrefixResult.rows.map(row => row[0]);
+    
+    const isRestrictedPrefix = restrictedPrefixes.some(prefix => matchesPrefix(mobileNumber, prefix));
+
+    // If any restriction exists, only admins can free
+    if (isStatusRestricted || isCategoryRestricted || isRestrictedPrefix) {
       if (req.session.user.role !== 'admin') {
         if (isStatusRestricted) {
           return res.status(403).json({
             success: false,
             message: `Cannot free. Mobile number ${mobileNumber} has a restricted status. Only admins can modify.`
           });
-        } else {
+        } else if (isCategoryRestricted) {
           return res.status(403).json({
             success: false,
             message: `Cannot free. Mobile number ${mobileNumber} has a restricted category. Only admins can modify.`
+          });
+        } else if (isRestrictedPrefix) {
+          return res.status(403).json({
+            success: false,
+            message: `Cannot free. Mobile number ${mobileNumber} matches a restricted prefix. Only admins can modify.`
           });
         }
       }
       if (isCategoryRestricted) {
         console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is freeing restricted category ${currentCategory} for mobile ${mobileNumber}`);
       }
+      if (isRestrictedPrefix) {
+        console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is freeing restricted prefix number ${mobileNumber}`);
+      }
     } else {
-      // Both are unrestricted - staff can also free
+      // All are unrestricted - staff can also free
       console.log(`[${new Date().toISOString()}] User ${req.session.user.username} is freeing unrestricted status for mobile ${mobileNumber}`);
     }
 
