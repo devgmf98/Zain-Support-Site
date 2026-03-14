@@ -1,0 +1,2603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zain Support Site</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f9fafb;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: #ffffff;
+            box-shadow: 2px 0 15px rgba(0, 0, 0, 0.08);
+            padding: 16px 10px;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            z-index: 1001;
+            display: flex;
+            flex-direction: column;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .sidebar-header {
+            padding: 0 0 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 12px;
+        }
+
+        .sidebar-header h1 {
+            font-size: 15px;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sidebar-header h1 span {
+            background: #f0f0f0;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .sidebar-header p {
+            font-size: 13px;
+            color: #999;
+            display: none;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            margin-bottom: 12px;
+        }
+
+        .nav-section-title {
+            font-size: 9px;
+            font-weight: 700;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            padding: 8px 10px;
+            margin-bottom: 4px;
+        }
+
+        .settings-nav-horizontal {
+            display: flex !important;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-top: auto;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-details-name {
+            font-size: 10px;
+            font-weight: 600;
+            color: #1a1a1a;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-details-email {
+            font-size: 9px;
+            color: #999;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            padding: 0;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+            flex-shrink: 0;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+            transform: scale(1.1);
+        }
+
+        .nav-item {
+            padding: 8px 10px;
+            margin: 0;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #666;
+            font-weight: 500;
+            font-size: 11px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .nav-item:hover {
+            background: #f5f5f5;
+            color: #1a1a1a;
+        }
+
+        .nav-item.active {
+            background: #f0f0f0;
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        .nav-item-icon {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .nav-item-badge {
+            margin-left: auto;
+            background: #667eea;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 1px 5px;
+            border-radius: 8px;
+            min-width: 18px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        .main-content {
+            margin-left: 240px;
+            width: calc(100% - 240px);
+            padding: 32px;
+            overflow-y: auto;
+            background: #f9fafb;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .main-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .container {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            padding: 40px;
+            max-width: 1500px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h2 {
+            color: #1a1a1a;
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+            font-weight: 400;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #1a1a1a;
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 13px;
+            transition: all 0.2s;
+            font-family: inherit;
+            color: #333;
+            background: #f9fafb;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.08);
+            background-color: #ffffff;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        button {
+            flex: 1;
+            padding: 11px 18px;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-update {
+            background: linear-gradient(135deg, #667eea 0%, #5568d3 100%);
+            color: white;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+        }
+
+        .btn-update:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+        }
+
+        .btn-update:active {
+            transform: translateY(0);
+        }
+
+        .btn-clear {
+            background: #f5f5f5;
+            color: #666;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-clear:hover {
+            background: #efefef;
+            border-color: #d0d0d0;
+        }
+
+        .alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+            animation: slideInRight 0.3s ease-out;
+            border-left: 3px solid;
+            z-index: 1000;
+            max-width: 350px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+        }
+
+        .alert.show {
+            display: block;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border-left-color: #28a745;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left-color: #f5c6cb;
+        }
+
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border-left-color: #bee5eb;
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 16px;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            display: none;
+            animation: slideInRight 0.3s ease-out;
+            z-index: 1000;
+            max-width: 350px;
+            border-left: 3px solid;
+            font-size: 13px;
+        }
+
+        .toast.show {
+            display: block;
+        }
+
+        .toast-success {
+            background-color: #d4edda;
+            color: #155724;
+            border-left-color: #28a745;
+        }
+
+        .toast-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border-left-color: #f5c6cb;
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 12px;
+            font-size: 13px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .info-box {
+            background-color: #f0f4ff;
+            border-left: 3px solid #667eea;
+            padding: 14px 16px;
+            border-radius: 6px;
+            margin-top: 24px;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .info-box strong {
+            color: #1a1a1a;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .form-section {
+            display: none;
+        }
+
+        .form-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ccc;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 240px;
+            right: 0;
+            background: #ffffff;
+            color: #666;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            font-size: 12px;
+            box-shadow: 0 -1px 8px rgba(0, 0, 0, 0.04);
+            z-index: 50;
+            letter-spacing: 0.5px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .footer i {
+            color: #1a1a1a;
+            font-weight: 600;
+        }
+
+        .footer i:nth-child(1) {
+            flex-shrink: 0;
+        }
+
+        .footer i:nth-child(2) {
+            flex: 1;
+            text-align: center;
+        }
+
+        .footer i:nth-child(3) {
+            flex-shrink: 0;
+            text-align: right;
+        }
+
+        body {
+            padding-bottom: 70px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 280px;
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+                padding: 20px;
+            }
+
+            .container {
+                padding: 30px 20px;
+            }
+
+            .header h2 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar Navigation -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>Zain Support <span>v1.0</span></h1>
+        </div>
+
+        <nav class="sidebar-nav">
+            <!-- Main Navigation Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Tools</div>
+                <div class="nav-item active" onclick="switchTab('dashboard')" id="dashboardNav" style="display: none;">
+                    <span class="nav-item-icon">📊</span>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('view')">
+                    <span class="nav-item-icon">🔍</span>
+                    <span>View Number Details</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('mobile')">
+                    <span class="nav-item-icon">📱</span>
+                    <span>Update Number Status</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('bulk')">
+                    <span class="nav-item-icon">📦</span>
+                    <span>Update Numbers in Bulk</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('sim')">
+                    <span class="nav-item-icon">🔄</span>
+                    <span>Update Serials</span>
+                </div>
+            </div>
+
+            <!-- Account Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Account</div>
+                
+                <!-- Settings Subsection - Admin Only -->
+                <div id="settingsDropdown" style="padding-top: 10px; display: none;">
+                    <div class="nav-item" style="cursor: pointer; justify-content: space-between; display: flex; align-items: center;" onclick="toggleSettingsPanel()">
+                        <span style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 16px;">⚙️</span>
+                            <span>Settings</span>
+                        </span>
+                        <span id="settingsIcon" style="font-size: 12px; transition: transform 0.3s ease; transform: rotate(0deg);">▼</span>
+                    </div>
+                    <div id="settingsNav" style="display: none; flex-direction: column; gap: 0; margin-top: 8px; margin-left: 8px; border-left: 2px solid #e0e0e0; padding-left: 12px;">
+                        <div onclick="switchTab('settings', 'restricted-prefix')" style="display: flex; align-items: center; padding: 8px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; gap: 6px; color: #666; border-radius: 4px;">
+                            <span style="font-size: 14px;">📌</span>
+                            <span>Restricted Prefix</span>
+                        </div>
+                        <div onclick="switchTab('settings', 'restricted-status')" style="display: flex; align-items: center; padding: 8px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; gap: 6px; color: #666; border-radius: 4px;">
+                            <span style="font-size: 14px;">🔐</span>
+                            <span>Restricted Status</span>
+                        </div>
+                        <div onclick="switchTab('settings', 'restricted-category')" style="display: flex; align-items: center; padding: 8px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; gap: 6px; color: #666; border-radius: 4px;">
+                            <span style="font-size: 14px;">📦</span>
+                            <span>Restricted Category</span>
+                        </div>
+                        <div onclick="switchTab('settings', 'email-settings')" style="display: flex; align-items: center; padding: 8px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; gap: 6px; color: #666; border-radius: 4px;">
+                            <span style="font-size: 14px;">⚙️</span>
+                            <span>Email Settings</span>
+                        </div>
+                        <div onclick="switchTab('settings', 'questions-settings')" style="display: flex; align-items: center; padding: 8px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; gap: 6px; color: #666; border-radius: 4px;">
+                            <span style="font-size: 14px;">❓</span>
+                            <span>Questions Settings</span>
+                        </div>
+                        <div onclick="switchTab('settings', 'email-recipients')" style="display: flex; align-items: center; padding: 8px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; gap: 6px; color: #666; border-radius: 4px;">
+                            <span style="font-size: 14px;">📧</span>
+                            <span>Email Recipients</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-item">
+                    <span class="nav-item-icon">📖</span>
+                    <span>Documentation</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('support')">
+                    <span class="nav-item-icon">🆘</span>
+                    <span>Support</span>
+                </div>
+            </div>
+        </nav>
+
+        <!-- User Info Section -->
+        <div class="user-info" id="userInfo" style="display: none;">
+            <div class="user-avatar" id="userAvatar">Z</div>
+            <div class="user-details">
+                <span class="user-details-name" id="currentUser">User</span>
+                <span class="user-details-email" id="currentEmail">email@zain.com</span>
+            </div>
+            <button class="logout-btn" onclick="logout()" title="Logout">↪</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="container">
+            <!-- Dashboard Section -->
+            <div id="dashboardSection" class="form-section" style="padding: 0; border: none; box-shadow: none; background: transparent;">
+                <iframe id="dashboardFrame" src="dashboard.html" style="width: 100%; height: calc(100vh - 120px); border: none; padding: 0; margin: 0;"></iframe>
+            </div>
+
+            <!-- View NumberDetails Section -->
+            <div id="viewSection" class="form-section">
+                <div class="header">
+                    <h2>View Number Details</h2>
+                    <p>Search for mobile number information</p>
+                </div>
+
+                <div id="viewMessageAlert" class="alert"></div>
+
+                <form id="viewForm">
+                    <div class="form-group">
+                        <label for="searchMobileNumber">Mobile Number(s) *</label>
+                        <textarea 
+                            id="searchMobileNumber" 
+                            placeholder="Enter number"
+                            required
+                            style="min-height: 60px;"
+                        ></textarea>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn-update">Search</button>
+                        <button type="reset" class="btn-clear">Clear</button>
+                    </div>
+
+                    <div class="loading" id="viewLoadingSpinner">
+                        <span class="spinner"></span>Searching...
+                    </div>
+                </form>
+
+                <!-- Details Display Area - Multiple Tables -->
+                <div id="detailsBox" style="display: none; margin-top: 30px;"></div>
+
+                <div class="info-box">
+                    <strong>ℹ️ Information</strong>
+                    Enter a mobile number to view its details including Mobile Number, Category Code, and Status. Admins can use the "Free Status" button to set STATUS_V to 'F' while preserving the category.
+                </div>
+            </div>
+
+            <!-- Mobile Update Section -->
+            <div id="mobileSection" class="form-section">
+                <div class="header">
+                    <h2>Update Number Status</h2>
+                </div>
+
+                <div id="messageAlert" class="alert"></div>
+
+                <form id="statusForm">
+                    <div class="form-group">
+                        <label for="mobileNumber">Mobile Number *</label>
+                        <input 
+                            type="text" 
+                            id="mobileNumber" 
+                            placeholder="Enter number"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="statusValue">Status Value *</label>
+                        <input 
+                            type="text" 
+                            id="statusValue" 
+                            placeholder="Enter status"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group" id="categoryFieldGroup" style="display: none;">
+                        <label for="categoryCode">Category Code (Admin Only)</label>
+                        <input 
+                            type="text" 
+                            id="categoryCode" 
+                            placeholder="Leave empty to keep existing category"
+                        >
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn-update">Update Status</button>
+                        <button type="reset" class="btn-clear">Clear</button>
+                    </div>
+
+                    <div class="loading" id="loadingSpinner">
+                        <span class="spinner"></span>Processing...
+                    </div>
+                </form>
+
+                <div class="info-box">
+                    <strong>ℹ️ Information</strong>
+                    Enter a single mobile number to update its status. Numbers with restricted statuses cannot be updated by anyone. Numbers with restricted prefixes or restricted categories can only be updated by admins.
+                </div>
+            </div>
+
+            <!-- Bulk Update Section -->
+            <div id="bulkSection" class="form-section">
+                <div class="header">
+                    <h2>Update Numbers in Bulk</h2>
+                    <p>Update multiple mobile numbers at once</p>
+                </div>
+
+                <div id="bulkMessageAlert" class="alert"></div>
+
+                <form id="bulkStatusForm">
+                    <div class="form-group">
+                        <label for="bulkMobileNumbers">Mobile Numbers *</label>
+                        <textarea 
+                            id="bulkMobileNumbers" 
+                            placeholder="Enter number"
+                            required
+                            style="min-height: 60px;"
+                        ></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="bulkStatusValue">Status Value *</label>
+                        <input 
+                            type="text" 
+                            id="bulkStatusValue" 
+                            placeholder="Enter status"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group" id="bulkCategoryFieldGroup" style="display: none;">
+                        <label for="bulkCategoryCode">Category Code (Admin Only)</label>
+                        <input 
+                            type="text" 
+                            id="bulkCategoryCode" 
+                            placeholder="Leave empty to keep existing categories"
+                        >
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn-update">Update All</button>
+                        <button type="reset" class="btn-clear">Clear</button>
+                    </div>
+
+                    <div class="loading" id="bulkLoadingSpinner">
+                        <span class="spinner"></span>Processing...
+                    </div>
+                </form>
+
+                <div class="info-box">
+                    <strong>ℹ️ Information</strong>
+                    Enter multiple mobile numbers separated by spaces or commas. All will be updated to the same status value. Numbers with restricted categories can only be updated by admins.
+                </div>
+            </div>
+
+            <!-- SIM Update Section -->
+            <div id="simSection" class="form-section">
+                <div class="header">
+                    <h2>Update Serials</h2>
+                </div>
+
+                <div id="simMessageAlert" class="alert"></div>
+
+                <form id="simUpdateForm">
+                    <div class="form-group">
+                        <label for="simNumbers">SIM Numbers *</label>
+                        <textarea 
+                            id="simNumbers" 
+                            placeholder="Enter Serial"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="simStatusValue">Status Value *</label>
+                        <input 
+                            type="text" 
+                            id="simStatusValue" 
+                            placeholder="Enter status"
+                            required
+                        >
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn-update">Update SIMs</button>
+                        <button type="reset" class="btn-clear">Clear</button>
+                    </div>
+
+                    <div class="loading" id="simLoadingSpinner">
+                        <span class="spinner"></span>Processing...
+                    </div>
+                </form>
+
+                <div class="info-box">
+                    <strong>ℹ️ Information</strong>
+                    Enter multiple SIM numbers separated by spaces or commas to update their status.
+                </div>
+            </div>
+
+            <!-- Support Section -->
+            <div id="supportSection" class="form-section">
+                <div class="header">
+                    <h2>Support Questions</h2>
+                    <p>Ask questions and view replies from administrators</p>
+                </div>
+
+                <div id="supportMessageAlert" class="alert"></div>
+
+                <!-- Ask Question Form -->
+                <div style="margin-bottom: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea;">
+                    <h3 style="margin-top: 0; color: #333;">Ask a Question</h3>
+                    <form id="askQuestionForm">
+                        <div class="form-group">
+                            <label for="questionTitle">Question Title *</label>
+                            <input 
+                                type="text" 
+                                id="questionTitle" 
+                                placeholder="Brief title of your question"
+                                required
+                                style="width: 100%;"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="questionDescription">Description *</label>
+                            <textarea 
+                                id="questionDescription" 
+                                placeholder="Provide details about your question"
+                                required
+                                style="width: 100%; min-height: 100px;"
+                            ></textarea>
+                        </div>
+
+                        <div class="button-group">
+                            <button type="submit" class="btn-update">Submit Question</button>
+                            <button type="reset" class="btn-clear">Clear</button>
+                        </div>
+
+                        <div class="loading" id="supportLoadingSpinner" style="display: none;">
+                            <span class="spinner"></span>Submitting...
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Questions and Replies Display -->
+                <div id="questionsContainer" style="margin-top: 30px;">
+                    <h3 style="color: #333; margin-top: 0;">All Questions and Replies</h3>
+                    <div id="questionsLoadingSpinner">
+                        <span class="spinner"></span>Loading questions...
+                    </div>
+                    <div id="questionsList"></div>
+                </div>
+            </div>
+
+            <!-- Settings Section (Admin Only) -->
+            <div id="settingsSection" class="form-section">
+                <!-- Restricted Prefix Section -->
+                <div id="settingsRestrictedPrefixSection" style="display: block;">
+                    <div class="header">
+                        <h2>📌 Add New Restricted Prefix</h2>
+                        <p>Manage restricted number prefixes</p>
+                    </div>
+
+                    <div id="settingsMessageAlert" class="alert"></div>
+
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="font-size: 16px; color: #1a1a1a; margin-bottom: 16px;">Add New Restricted Prefix</h3>
+                        <form id="addRestrictedForm">
+                            <div class="form-group">
+                                <label for="restrictedPrefix">Prefix *</label>
+                                <input 
+                                    type="text" 
+                                    id="restrictedPrefix" 
+                                    placeholder="e.g., 9123"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="restrictedDescription">Description (Optional)</label>
+                                <input 
+                                    type="text" 
+                                    id="restrictedDescription" 
+                                    placeholder="Enter description"
+                                >
+                            </div>
+
+                            <div class="button-group">
+                                <button type="submit" class="btn-update">Add Prefix</button>
+                                <button type="reset" class="btn-clear">Clear</button>
+                            </div>
+
+                            <div class="loading" id="addRestrictedLoading">
+                                <span class="spinner"></span>Adding...
+                            </div>
+                        </form>
+                    </div>
+
+                    <div style="border-top: 1px solid #e0e0e0; padding-top: 30px;">
+                        <h3 style="font-size: 16px; color: #1a1a1a; margin-bottom: 16px;">Existing Restricted Prefixes</h3>
+                        <div id="restrictedNumbersList" style="display: none;">
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                <thead>
+                                    <tr style="background: #f9fafb;">
+                                        <th style="padding: 12px 14px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Prefix</th>
+                                        <th style="padding: 12px 14px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Description</th>
+                                        <th style="padding: 12px 14px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Created By</th>
+                                        <th style="padding: 12px 14px; text-align: center; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="restrictedNumbersTable">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="emptyMessage" style="text-align: center; padding: 20px; color: #999;">
+                            Loading restricted prefixes...
+                        </div>
+                    </div>
+
+                    <div class="info-box" style="margin-top: 30px;">
+                        <strong>ℹ️ Information</strong>
+                        Numbers with restricted prefixes can only be updated by admin users. Staff users cannot update numbers matching these prefixes. Add or remove prefixes as needed.
+                    </div>
+                </div>
+
+                <!-- Restricted Statuses Section -->
+                <div id="settingsRestrictedStatusSection" style="display: none;">
+                    <div class="header">
+                        <h2>🔐 Restricted Statuses</h2>
+                        <p>Configure status values that prevent updates</p>
+                    </div>
+
+                    <div id="statusMessageAlert" class="alert"></div>
+
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="font-size: 16px; color: #1a1a1a; margin-bottom: 16px;">Add New Restricted Status</h3>
+                        <form id="addRestrictedStatusForm">
+                            <div class="form-group">
+                                <label for="restrictedStatus">Status *</label>
+                                <input 
+                                    type="text" 
+                                    id="restrictedStatus" 
+                                    placeholder="e.g., A, Z, N"
+                                    required
+                                    style="text-transform: uppercase;"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="statusDescription">Description (Optional)</label>
+                                <input 
+                                    type="text" 
+                                    id="statusDescription" 
+                                    placeholder="e.g., Active numbers, Suspended"
+                                >
+                            </div>
+
+                            <div class="button-group">
+                                <button type="submit" class="btn-update">Add Status</button>
+                                <button type="reset" class="btn-clear">Clear</button>
+                            </div>
+
+                            <div class="loading" id="addStatusLoading">
+                                <span class="spinner"></span>Adding...
+                            </div>
+                        </form>
+                    </div>
+
+                    <div style="border-top: 1px solid #e0e0e0; padding-top: 30px;">
+                        <h3 style="font-size: 16px; color: #1a1a1a; margin-bottom: 16px;">Existing Restricted Statuses</h3>
+                        <div id="restrictedStatusesList" style="display: none;">
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                <thead>
+                                    <tr style="background: #f9fafb;">
+                                        <th style="padding: 12px 14px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Status</th>
+                                        <th style="padding: 12px 14px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Description</th>
+                                        <th style="padding: 12px 14px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Created By</th>
+                                        <th style="padding: 12px 14px; text-align: center; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="restrictedStatusesTable">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="emptyStatusMessage" style="text-align: center; padding: 20px; color: #999;">
+                            Loading restricted statuses...
+                        </div>
+                    </div>
+
+                    <div class="info-box" style="margin-top: 30px;">
+                        <strong>ℹ️ Information</strong>
+                        Numbers and SIMs with these status values cannot be updated by anyone (including admins). These are completely locked. Add or remove statuses as needed.
+                    </div>
+                </div>
+
+                <!-- Restricted Category Section -->
+                <div id="settingsRestrictedCategorySection" style="display: none;">
+                    <div class="header">
+                        <h2>📦 Restricted Categories</h2>
+                        <p>Configure category codes that cannot be freed</p>
+                    </div>
+
+                    <div id="categoryMessageAlert" class="alert"></div>
+
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="font-size: 16px; color: #1a1a1a; margin-bottom: 16px;">Add New Restricted Category</h3>
+                        <form id="addRestrictedCategoryForm">
+                            <div class="form-group">
+                                <label for="restrictedCategory">Category Code *</label>
+                                <input 
+                                    type="text" 
+                                    id="restrictedCategory" 
+                                    placeholder="e.g., CATEGORY_CODE_V"
+                                    required
+                                    style="text-transform: uppercase;"
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="categoryDescription">Description (Optional)</label>
+                                <input 
+                                    type="text" 
+                                    id="categoryDescription" 
+                                    placeholder="e.g., Reserved categories"
+                                >
+                            </div>
+
+                            <div class="button-group">
+                                <button type="submit" class="btn-update">Add Category</button>
+                                <button type="reset" class="btn-clear">Clear</button>
+                            </div>
+
+                            <div class="loading" id="addCategoryLoading">
+                                <span class="spinner"></span>Adding...
+                            </div>
+                        </form>
+                    </div>
+
+                    <div style="border-top: 1px solid #e0e0e0; padding-top: 30px;">
+                        <h3 style="font-size: 16px; color: #1a1a1a; margin-bottom: 16px;">Existing Restricted Categories</h3>
+                        <div id="restrictedCategoriesList" style="display: none;">
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                <thead>
+                                    <tr style="background: #f9fafb;">
+                                        <th style="padding: 12px 14px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Category Code</th>
+                                        <th style="padding: 12px 14px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Description</th>
+                                        <th style="padding: 12px 14px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Created By</th>
+                                        <th style="padding: 12px 14px; text-align: center; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="restrictedCategoriesTable">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="emptyCategoryMessage" style="text-align: center; padding: 20px; color: #999;">
+                            Loading restricted categories...
+                        </div>
+                    </div>
+
+                    <div class="info-box" style="margin-top: 30px;">
+                        <strong>ℹ️ Information</strong>
+                        Categories in this list cannot be freed. These are completely locked. Add or remove categories as needed.
+                    </div>
+                </div>
+
+                <!-- Email Settings Section -->
+                <div id="settingsEmailSettingsSection" style="display: none;">
+                    <div class="header">
+                        <h2>⚙️ Email Settings</h2>
+                        <p>Configure email notification preferences</p>
+                    </div>
+                    
+                    <div id="emailSettingsMessageAlert" class="alert"></div>
+
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="font-size: 16px; color: #1a1a1a; margin-bottom: 16px;">Enable/Disable Email Notifications</h3>
+                        
+                        <div style="display: flex; align-items: center; gap: 16px; padding: 16px; background: #f9fafb; border-radius: 6px; border: 1px solid #e0e0e0;">
+                            <label for="emailSendingToggle" style="display: flex; align-items: center; cursor: pointer; gap: 8px; margin: 0;">
+                                <input 
+                                    type="checkbox" 
+                                    id="emailSendingToggle" 
+                                    style="width: 18px; height: 18px; cursor: pointer;"
+                                >
+                                <span style="font-size: 14px; color: #1a1a1a; font-weight: 500;">
+                                    Email notifications are <span id="emailStatusText" style="font-weight: 600; color: #667eea;">enabled</span>
+                                </span>
+                            </label>
+                            
+                            <div class="loading" id="emailSettingLoading" style="margin-left: auto; display: none;">
+                                <span class="spinner"></span>Updating...
+                            </div>
+                        </div>
+
+                        <div class="info-box" style="margin-top: 16px;">
+                            <strong>ℹ️ Information</strong>
+                            Toggle this switch to enable or disable automatic email notifications when status updates are made.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Questions Settings Section -->
+                <div id="settingsQuestionsSettingsSection" style="display: none;">
+                    <div class="header">
+                        <h2>❓ Questions Settings</h2>
+                        <p>Configure support questions preferences</p>
+                    </div>
+                    
+                    <div id="questionsSettingsMessageAlert" class="alert"></div>
+
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="font-size: 16px; color: #1a1a1a; margin-bottom: 16px;">Enable/Disable Support Questions</h3>
+                        
+                        <div style="display: flex; align-items: center; gap: 16px; padding: 16px; background: #f9fafb; border-radius: 6px; border: 1px solid #e0e0e0;">
+                            <label for="questionsSendingToggle" style="display: flex; align-items: center; cursor: pointer; gap: 8px; margin: 0;">
+                                <input 
+                                    type="checkbox" 
+                                    id="questionsSendingToggle" 
+                                    style="width: 18px; height: 18px; cursor: pointer;"
+                                >
+                                <span style="font-size: 14px; color: #1a1a1a; font-weight: 500;">
+                                    Support questions are <span id="questionsStatusText" style="font-weight: 600; color: #667eea;">enabled</span>
+                                </span>
+                            </label>
+                            
+                            <div class="loading" id="questionsSettingLoading" style="margin-left: auto; display: none;">
+                                <span class="spinner"></span>Updating...
+                            </div>
+                        </div>
+
+                        <div class="info-box" style="margin-top: 16px;">
+                            <strong>ℹ️ Information</strong>
+                            Toggle this switch to enable or disable the support questions feature. When disabled, users cannot submit new questions.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Recipients Section -->
+                <div id="settingsEmailRecipientsSection" style="display: none;">
+                    <div class="header">
+                        <h2>📧 Email Recipients</h2>
+                        <p>Manage email addresses that receive notifications</p>
+                    </div>
+
+                    <div id="emailMessageAlert" class="alert"></div>
+
+                    <div style="margin-bottom: 30px;">
+                        <h3 style="font-size: 16px; color: #1a1a1a; margin-bottom: 16px;">Add New Email Recipient</h3>
+                        <form id="addEmailForm">
+                            <div class="form-group">
+                                <label for="recipientEmail">Email Address *</label>
+                                <input 
+                                    type="email" 
+                                    id="recipientEmail" 
+                                    placeholder="e.g., admin@example.com"
+                                    required
+                                >
+                            </div>
+
+                            <div class="form-group">
+                                <label for="emailDescription">Name/Description (Optional)</label>
+                                <input 
+                                    type="text" 
+                                    id="emailDescription" 
+                                    placeholder="e.g., CEO, Finance Team"
+                                >
+                            </div>
+
+                            <div class="button-group">
+                                <button type="submit" class="btn-update">Add Email</button>
+                                <button type="reset" class="btn-clear">Clear</button>
+                            </div>
+
+                            <div class="loading" id="addEmailLoading">
+                                <span class="spinner"></span>Adding...
+                            </div>
+                        </form>
+                    </div>
+
+                    <div style="border-top: 1px solid #e0e0e0; padding-top: 30px;">
+                        <h3 style="font-size: 16px; color: #1a1a1a; margin-bottom: 16px;">Existing Email Recipients</h3>
+                        <div id="emailRecipientsList" style="display: none;">
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                <thead>
+                                    <tr style="background: #f9fafb;">
+                                        <th style="padding: 12px 14px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Email Address</th>
+                                        <th style="padding: 12px 14px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Description</th>
+                                        <th style="padding: 12px 14px; text-align: left; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Added By</th>
+                                        <th style="padding: 12px 14px; text-align: center; border-bottom: 1px solid #e0e0e0; font-size: 13px; font-weight: 600; color: #1a1a1a;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="emailRecipientsTable">
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="emptyEmailMessage" style="text-align: center; padding: 20px; color: #999;">
+                            Loading email recipients...
+                        </div>
+                    </div>
+
+                    <div class="info-box" style="margin-top: 30px;">
+                        <strong>ℹ️ Information</strong>
+                        These email addresses will receive notifications when number statuses are updated.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let currentUserRole = 'staff'; // Default to staff, will be updated on login
+        let restrictedCategories = []; // Store restricted categories list
+        let restrictedStatuses = []; // Store restricted statuses list
+        let restrictedPrefixes = []; // Store restricted prefixes list
+        
+        const statusForm = document.getElementById('statusForm');
+        const bulkStatusForm = document.getElementById('bulkStatusForm');
+        const simUpdateForm = document.getElementById('simUpdateForm');
+        const viewForm = document.getElementById('viewForm');
+        const toast = document.getElementById('toast');
+
+        // Helper function to escape HTML and prevent XSS
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Helper function to normalize numbers (remove non-digits)
+        function normalizeNumber(s) {
+            return s ? s.toString().replace(/[^0-9]/g, '') : '';
+        }
+
+        // Helper function to check if mobile number matches any restricted prefix
+        function matchesRestrictedPrefix(mobileNumber) {
+            const normalized = normalizeNumber(mobileNumber);
+            return restrictedPrefixes.some(prefix => {
+                const p = normalizeNumber(prefix);
+                if (!normalized || !p) return false;
+                // Check common variants: p, 0p, 92p, 0092p
+                const variants = [p, '0' + p, '92' + p, '0092' + p];
+                return variants.some(v => normalized.startsWith(v));
+            });
+        }
+
+        // Idle timeout setup - 15 minutes
+        const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
+        let idleTimer = null;
+        let lastActivityTime = Date.now();
+
+        function resetIdleTimer() {
+            lastActivityTime = Date.now();
+            clearTimeout(idleTimer);
+            
+            idleTimer = setTimeout(() => {
+                console.log('[Auto-Logout] User idle for 15 minutes. Logging out...');
+                showToast('Session expired due to inactivity. Please log in again.', 'info');
+                logout();
+            }, IDLE_TIMEOUT);
+        }
+
+        function setupIdleTimeoutListeners() {
+            const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+            events.forEach(event => {
+                document.addEventListener(event, resetIdleTimer, true);
+            });
+        }
+
+        // Check authentication on page load
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('/api/current-user');
+                if (!response.ok) {
+                    // Not authenticated, redirect to login
+                    window.location.href = '/';
+                    return;
+                }
+                const data = await response.json();
+                if (data.success && data.user) {
+                    displayUserInfo(data.user);
+                }
+                
+                // Load restricted categories and statuses on page initialization
+                // This ensures they're available for all operations
+                await loadRestrictedCategories();
+                await loadRestrictedStatuses();
+                await loadRestrictedNumbers();
+
+                // Initialize idle timeout for auto-logout after 15 minutes of inactivity
+                setupIdleTimeoutListeners();
+                resetIdleTimer();
+            } catch (error) {
+                console.error('Error checking authentication:', error);
+                window.location.href = '/';
+            }
+        });
+
+        function toggleSettingsPanel() {
+            const settingsNav = document.getElementById('settingsNav');
+            const settingsIcon = document.getElementById('settingsIcon');
+            const isVisible = settingsNav.style.display === 'flex';
+            
+            settingsNav.style.display = isVisible ? 'none' : 'flex';
+            settingsIcon.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+
+        function displayUserInfo(user) {
+            const userInfo = document.getElementById('userInfo');
+            const currentUser = document.getElementById('currentUser');
+            const currentEmail = document.getElementById('currentEmail');
+            const userAvatar = document.getElementById('userAvatar');
+            const settingsDropdown = document.getElementById('settingsDropdown');
+            const dashboardNav = document.getElementById('dashboardNav');
+            
+            // Store user role globally
+            currentUserRole = user.role || 'staff';
+            
+            currentUser.textContent = user.username || 'User';
+            currentEmail.textContent = user.email || user.username + '@zain.com';
+            userAvatar.textContent = (user.username || 'U')[0].toUpperCase();
+            userInfo.style.display = 'flex';
+            
+            // Show Dashboard and Settings only if user is admin
+            if (user.role === 'admin') {
+                settingsDropdown.style.display = 'block';
+                dashboardNav.style.display = 'flex';
+                // Show category fields for admins
+                document.getElementById('categoryFieldGroup').style.display = 'block';
+                document.getElementById('bulkCategoryFieldGroup').style.display = 'block';
+                // Show dashboard as the main page for admins
+                switchTab('dashboard');
+            } else {
+                settingsDropdown.style.display = 'none';
+                dashboardNav.style.display = 'none';
+                // Show view details as the main page for non-admins
+                switchTab('view');
+            }
+        }
+
+        async function logout() {
+            try {
+                const response = await fetch('/api/logout', { method: 'POST' });
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+            }
+        }
+
+        function goToDashboard() {
+            window.location.href = 'dashboard.html';
+        }
+
+        function switchTab(tab, subtab = null) {
+            document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+            const sectionMap = {
+                'dashboard': 'dashboardSection',
+                'view': 'viewSection',
+                'mobile': 'mobileSection',
+                'bulk': 'bulkSection',
+                'sim': 'simSection',
+                'support': 'supportSection',
+                'settings': 'settingsSection'
+            };
+
+            // Handle settings subtabs
+            if (tab === 'settings' && subtab) {
+                const settingsSubtabMap = {
+                    'restricted-prefix': 'settingsRestrictedPrefixSection',
+                    'restricted-status': 'settingsRestrictedStatusSection',
+                    'restricted-category': 'settingsRestrictedCategorySection',
+                    'email-settings': 'settingsEmailSettingsSection',
+                    'questions-settings': 'settingsQuestionsSettingsSection',
+                    'email-recipients': 'settingsEmailRecipientsSection'
+                };
+
+                // Show main settings section
+                const settingsSection = document.getElementById('settingsSection');
+                if (settingsSection) {
+                    settingsSection.classList.add('active');
+                }
+
+                // Hide all settings subtabs
+                const settingsSubtabs = [
+                    'settingsRestrictedPrefixSection',
+                    'settingsRestrictedStatusSection',
+                    'settingsRestrictedCategorySection',
+                    'settingsEmailSettingsSection',
+                    'settingsQuestionsSettingsSection',
+                    'settingsEmailRecipientsSection'
+                ];
+                settingsSubtabs.forEach(id => {
+                    const elem = document.getElementById(id);
+                    if (elem) elem.style.display = 'none';
+                });
+                
+                // Show the selected subtab
+                if (settingsSubtabMap[subtab]) {
+                    const elem = document.getElementById(settingsSubtabMap[subtab]);
+                    if (elem) elem.style.display = 'block';
+                }
+
+                // Load data based on subtab
+                if (subtab === 'restricted-prefix') {
+                    loadRestrictedNumbers();
+                } else if (subtab === 'restricted-status') {
+                    loadRestrictedStatuses();
+                } else if (subtab === 'restricted-category') {
+                    loadRestrictedCategories();
+                } else if (subtab === 'email-settings') {
+                    loadEmailSetting();
+                } else if (subtab === 'questions-settings') {
+                    loadQuestionsSetting();
+                } else if (subtab === 'email-recipients') {
+                    loadEmailRecipients();
+                }
+            } else if (sectionMap[tab]) {
+                document.getElementById(sectionMap[tab]).classList.add('active');
+                if (event && event.target.closest('.nav-item')) {
+                    event.target.closest('.nav-item').classList.add('active');
+                }
+                
+                // Load all settings data if opening main settings tab
+                if (tab === 'settings') {
+                    loadRestrictedNumbers();
+                    loadRestrictedStatuses();
+                    loadEmailRecipients();
+                    loadEmailSetting();
+                    loadQuestionsSetting();
+                }
+
+                // Load support questions if opening support tab
+                if (tab === 'support') {
+                    loadSupportTab();
+                }
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            toast.textContent = message;
+            toast.className = `toast show toast-${type}`;
+            setTimeout(() => toast.classList.remove('show'), 5000);
+        }
+
+        function showMessage(message, type = 'info', elementId = 'messageAlert') {
+            const alert = document.getElementById(elementId);
+            alert.textContent = message;
+            alert.className = `alert show alert-${type}`;
+            setTimeout(() => alert.classList.remove('show'), 5000);
+        }
+
+        // View Mobile Details Handler - Multiple Numbers
+        viewForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const mobileNumbers = document.getElementById('searchMobileNumber').value.trim();
+
+            if (!mobileNumbers) {
+                showMessage('Please enter at least one mobile number', 'error', 'viewMessageAlert');
+                return;
+            }
+
+            // Parse multiple numbers - split by comma or space
+            const numberList = mobileNumbers
+                .split(/[,\s]+/)
+                .map(num => num.trim())
+                .filter(num => num.length > 0);
+
+            if (numberList.length === 0) {
+                showMessage('Please enter valid mobile numbers', 'error', 'viewMessageAlert');
+                return;
+            }
+
+            document.getElementById('viewLoadingSpinner').style.display = 'block';
+            document.getElementById('detailsBox').innerHTML = '';
+            document.getElementById('detailsBox').style.display = 'none';
+
+            try {
+                let successCount = 0;
+                const tableRows = [];
+                const failedNumbers = [];
+
+                // Fetch details for each number
+                for (const mobileNumber of numberList) {
+                    try {
+                        const response = await fetch(`/api/get-mobile-details/${encodeURIComponent(mobileNumber)}`);
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            successCount++;
+                            const isRestrictedCategory = data.data.categoryCode && restrictedCategories.includes(data.data.categoryCode);
+                            const isRestrictedStatus = data.data.status && restrictedStatuses.includes(data.data.status.toUpperCase());
+                            const isRestrictedPrefixMatch = matchesRestrictedPrefix(data.data.mobileNumber);
+                            const hasRestriction = isRestrictedCategory || isRestrictedStatus || isRestrictedPrefixMatch;
+                            
+                            let freeButtonHTML;
+                            if (hasRestriction) {
+                                // Has restriction - only admin can free
+                                if (currentUserRole === 'admin') {
+                                    freeButtonHTML = `<button onclick="freeMobileStatus('${data.data.mobileNumber}', '${data.data.status || 'N/A'}')" style="background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;" title="Free this status">🔓 Free Status</button>`;
+                                } else {
+                                    freeButtonHTML = '<span style="color: #f44336; font-size: 11px; font-weight: 600;">Admin only</span>';
+                                }
+                            } else {
+                                // No restrictions - both admin and staff can free
+                                freeButtonHTML = `<button onclick="freeMobileStatus('${data.data.mobileNumber}', '${data.data.status || 'N/A'}')" style="background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;" title="Free this status">🔓 Free Status</button>`;
+                            }
+                            
+                            tableRows.push(`
+                                <tr style="border-bottom: 1px solid #e0e0e0; transition: background 0.2s; ${hasRestriction && currentUserRole !== 'admin' ? 'background: #fff3cd;' : ''}">
+                                    <td style="padding: 11px 13px; color: #333; font-size: 13px;">${data.data.mobileNumber || 'N/A'}</td>
+                                    <td style="padding: 11px 13px; color: #333; font-size: 13px;">
+                                        <span style="padding: 4px 8px; background: ${data.data.categoryCode ? '#e8f5e9' : '#f5f5f5'}; color: ${data.data.categoryCode ? '#2e7d32' : '#999'}; border-radius: 4px; display: inline-block; font-weight: 500; font-size: 12px;">
+                                            ${data.data.categoryCode || 'N/A'}
+                                        </span>
+                                        ${isRestrictedCategory ? `<span style="margin-left: 6px; padding: 2px 6px; background: #f44336; color: white; border-radius: 3px; font-size: 10px; font-weight: 600;">RESTRICTED</span>` : ''}
+                                    </td>
+                                    <td style="padding: 11px 13px; color: #333; font-size: 13px;">
+                                        <span style="padding: 4px 8px; background: ${isRestrictedStatus ? '#ffebee' : '#f0f4ff'}; color: ${isRestrictedStatus ? '#f44336' : '#667eea'}; border-radius: 4px; display: inline-block; font-weight: 600; font-size: 12px;">${data.data.status || 'N/A'}</span>
+                                        ${isRestrictedStatus ? `<span style="margin-left: 6px; padding: 2px 6px; background: #f44336; color: white; border-radius: 3px; font-size: 10px; font-weight: 600;">RESTRICTED</span>` : ''}
+                                        ${isRestrictedPrefixMatch ? `<span style="margin-left: 6px; padding: 2px 6px; background: #f44336; color: white; border-radius: 3px; font-size: 10px; font-weight: 600;">PREFIX</span>` : ''}
+                                    </td>
+                                    <td style="padding: 11px 13px; text-align: center;">
+                                        ${freeButtonHTML}
+                                    </td>
+                                </tr>
+                            `);
+                        } else {
+                            failedNumbers.push(`${mobileNumber}: ${data.message || 'No record found'}`);
+                        }
+                    } catch (error) {
+                        failedNumbers.push(`${mobileNumber}: Error - ${error.message}`);
+                    }
+                }
+
+                document.getElementById('viewLoadingSpinner').style.display = 'none';
+
+                if (successCount > 0) {
+                    const tableHTML = `
+                        <strong style="color: #1a1a1a; display: block; margin-bottom: 12px; font-size: 14px; font-weight: 600;">📋 Search Results</strong>
+                        <table style="width: 100%; border-collapse: collapse; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 6px; overflow: hidden;">
+                            <thead>
+                                <tr style="background: linear-gradient(135deg, #f9fafb 0%, #f5f7fa 100%); color: #1a1a1a; border-bottom: 1px solid #e0e0e0;">
+                                    <th style="padding: 11px 13px; text-align: left; font-weight: 600; font-size: 12px; border-right: 1px solid #e0e0e0;">Mobile Number</th>
+                                    <th style="padding: 11px 13px; text-align: left; font-weight: 600; font-size: 12px; border-right: 1px solid #e0e0e0;">Category Code</th>
+                                    <th style="padding: 11px 13px; text-align: left; font-weight: 600; font-size: 12px; border-right: 1px solid #e0e0e0;">Status</th>
+                                    <th style="padding: 11px 13px; text-align: center; font-weight: 600; font-size: 12px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tableRows.join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    
+                    let fullHTML = tableHTML;
+                    if (failedNumbers.length > 0) {
+                        fullHTML += `<div style="margin-top: 20px; padding: 12px 14px; background: #fffbf0; border: 1px solid #f5d76e; border-radius: 6px; color: #8b6914; font-size: 13px;">
+                            <strong style="display: block; margin-bottom: 6px;">⚠️ Issues with ${failedNumbers.length} number(s):</strong>
+                            <ul style="margin-top: 8px; margin-bottom: 0; padding-left: 20px;">
+                                ${failedNumbers.map(num => `<li>${num}</li>`).join('')}
+                            </ul>
+                        </div>`;
+                    }
+                    
+                    document.getElementById('detailsBox').innerHTML = fullHTML;
+                    document.getElementById('detailsBox').style.display = 'block';
+                    showMessage(`Retrieved details for ${successCount} of ${numberList.length} number(s)`, 'success', 'viewMessageAlert');
+                } else {
+                    showMessage(`No records found for any of the ${numberList.length} number(s)`, 'error', 'viewMessageAlert');
+                }
+            } catch (error) {
+                document.getElementById('viewLoadingSpinner').style.display = 'none';
+                showMessage('Error: ' + error.message, 'error', 'viewMessageAlert');
+            }
+        });
+
+        // Free status function (Sets STATUS_V to 'F' while preserving category)
+        async function freeMobileStatus(mobileNumber, statusCode) {
+            if (statusCode === 'N/A') {
+                showToast('This mobile number does not have a status to free', 'info');
+                return;
+            }
+
+            if (!confirm(`Are you sure you want to free status '${statusCode}' for mobile number ${mobileNumber}? The category will be preserved.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/free-category', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mobileNumber: mobileNumber })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast('Status freed successfully. Category preserved: ' + (data.categoryPreserved || 'N/A'), 'success');
+                    // Refresh the view to show updated status
+                    document.querySelector('[onclick*="viewForm"]')?.click?.() || viewForm?.dispatchEvent(new Event('submit'));
+                } else {
+                    showToast(data.message || 'Error freeing category', 'error');
+                }
+            } catch (error) {
+                console.error('Error freeing category:', error);
+                showToast('Error: ' + error.message, 'error');
+            }
+        }
+
+        statusForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const mobileNumber = document.getElementById('mobileNumber').value.trim();
+            const statusValue = document.getElementById('statusValue').value.trim();
+            const categoryCodeV = document.getElementById('categoryCode').value.trim();
+
+            if (!mobileNumber || !statusValue) {
+                showMessage('Please fill in all required fields', 'error');
+                return;
+            }
+
+            document.getElementById('loadingSpinner').style.display = 'block';
+
+            try {
+                const requestBody = { mobileNumber, statusValue };
+                if (categoryCodeV) {
+                    requestBody.categoryCodeV = categoryCodeV;
+                }
+
+                const response = await fetch('/api/update-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+                document.getElementById('loadingSpinner').style.display = 'none';
+
+                showToast(data.message, response.ok ? 'success' : 'error');
+                if (response.ok) statusForm.reset();
+            } catch (error) {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                showToast('Error: ' + error.message, 'error');
+            }
+        });
+
+        bulkStatusForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const numbers = document.getElementById('bulkMobileNumbers').value.trim();
+            const statusValue = document.getElementById('bulkStatusValue').value.trim();
+            const categoryCodeV = document.getElementById('bulkCategoryCode').value.trim();
+
+            if (!numbers || !statusValue) {
+                showMessage('Please fill in all required fields', 'error', 'bulkMessageAlert');
+                return;
+            }
+
+            document.getElementById('bulkLoadingSpinner').style.display = 'block';
+
+            try {
+                const requestBody = {
+                    mobileNumbers: numbers.split(/[\s,]+/).filter(n => n),
+                    statusValue: statusValue
+                };
+                if (categoryCodeV) {
+                    requestBody.categoryCodeV = categoryCodeV;
+                }
+
+                const response = await fetch('/api/bulk-update-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const data = await response.json();
+                document.getElementById('bulkLoadingSpinner').style.display = 'none';
+
+                showToast(data.message, response.ok ? 'success' : 'error');
+                if (response.ok) bulkStatusForm.reset();
+            } catch (error) {
+                document.getElementById('bulkLoadingSpinner').style.display = 'none';
+                showToast('Error: ' + error.message, 'error');
+            }
+        });
+
+        simUpdateForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const simNumbers = document.getElementById('simNumbers').value.trim();
+            const statusValue = document.getElementById('simStatusValue').value.trim();
+
+            if (!simNumbers || !statusValue) {
+                showMessage('Please fill in all required fields', 'error', 'simMessageAlert');
+                return;
+            }
+
+            document.getElementById('simLoadingSpinner').style.display = 'block';
+
+            try {
+                const response = await fetch('/api/update-sim-num-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ simNum: simNumbers, statusValue })
+                });
+
+                const data = await response.json();
+                document.getElementById('simLoadingSpinner').style.display = 'none';
+
+                showToast(data.message, response.ok ? 'success' : 'error');
+                if (response.ok) simUpdateForm.reset();
+            } catch (error) {
+                document.getElementById('simLoadingSpinner').style.display = 'none';
+                showToast('Error: ' + error.message, 'error');
+            }
+        });
+
+        // ============ SUPPORT SECTION ============
+        const askQuestionForm = document.getElementById('askQuestionForm');
+
+        // Load all questions and replies
+        async function loadSupportQuestions() {
+            try {
+                document.getElementById('questionsLoadingSpinner').style.display = 'block';
+                const response = await fetch('/api/support-questions');
+                const data = await response.json();
+
+                document.getElementById('questionsLoadingSpinner').style.display = 'none';
+                
+                console.log('Support questions data received:', data);
+
+                if (data.success) {
+                    const questions = data.questions;
+                    console.log('Questions count:', questions.length);
+                    console.log('First question:', questions[0]);
+                    
+                    const questionsList = document.getElementById('questionsList');
+
+                    if (questions.length === 0) {
+                        questionsList.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">No questions yet. Be the first to ask!</p>';
+                        return;
+                    }
+
+                    questionsList.innerHTML = questions.map(question => {
+                        console.log('Rendering question:', question.questionId, question.title);
+                        return `
+                        <div style="margin-bottom: 20px; padding: 15px; background: white; border: 1px solid #e0e0e0; border-radius: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px;">
+                                <div>
+                                    <h4 style="margin: 0 0 5px 0; color: #333;">${escapeHtml(question.title)}</h4>
+                                    <p style="margin: 0; font-size: 12px; color: #666;">Asked by <strong>${escapeHtml(question.askedBy)}</strong> on ${new Date(question.askedAt).toLocaleString()}</p>
+                                </div>
+                                <span style="padding: 4px 8px; background: ${question.status === 'OPEN' ? '#fff3cd' : '#d4edda'}; color: ${question.status === 'OPEN' ? '#856404' : '#155724'}; border-radius: 4px; font-size: 11px; font-weight: 600;">${question.status}</span>
+                            </div>
+
+                            <p style="margin: 10px 0; color: #555; line-height: 1.6;">${escapeHtml(question.description)}</p>
+
+                            ${question.replies.length > 0 ? `
+                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #f0f0f0;">
+                                    <h5 style="margin: 0 0 10px 0; color: #333;">Replies:</h5>
+                                    ${question.replies.map(reply => `
+                                        <div style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-left: 3px solid #667eea; border-radius: 4px;">
+                                            <p style="margin: 0 0 5px 0; font-size: 12px; color: #666;"><strong style="color: #667eea;">🔐 ${escapeHtml(reply.repliedBy)}</strong> replied on ${new Date(reply.repliedAt).toLocaleString()}</p>
+                                            <p style="margin: 0; color: #555; line-height: 1.6;">${escapeHtml(reply.replyText)}</p>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+
+                            ${currentUserRole === 'admin' ? `
+                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #f0f0f0;">
+                                    <form class="adminReplyForm" data-question-id="${question.questionId}" onsubmit="handleAdminReply(event)" style="display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end;">
+                                        <textarea class="adminReplyText" placeholder="Admin reply..." required style="flex: 1; min-width: 250px; min-height: 60px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: inherit; font-size: 12px; resize: vertical;"></textarea>
+                                        <button type="submit" class="adminReplyBtn" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: 600; white-space: nowrap; flex-shrink: 0; height: fit-content;">Reply</button>
+                                    </form>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `}
+                    ).join('');
+                } else {
+                    showMessage(data.message, 'error', 'supportMessageAlert');
+                }
+            } catch (error) {
+                document.getElementById('questionsLoadingSpinner').style.display = 'none';
+                console.error('Error loading questions:', error);
+                showMessage('Error loading questions', 'error', 'supportMessageAlert');
+            }
+        }
+
+        // Ask a question
+        askQuestionForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('Ask question form submitted');
+            
+            document.getElementById('supportLoadingSpinner').style.display = 'block';
+
+            const title = document.getElementById('questionTitle').value;
+            const description = document.getElementById('questionDescription').value;
+            
+            console.log('Question form data:', { titleLength: title.length, descriptionLength: description.length });
+
+            try {
+                const requestBody = { title, description };
+                console.log('Sending question request:', requestBody);
+                
+                const response = await fetch('/api/support-questions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                document.getElementById('supportLoadingSpinner').style.display = 'none';
+                const data = await response.json();
+                
+                console.log('Question response:', response.status, data);
+
+                if (response.ok) {
+                    console.log('Question submitted successfully');
+                    console.log('Returned question:', data.question);
+                    
+                    if (data.question) {
+                        console.log(`✓ New question created with ID: ${data.question.questionId}, Title: "${data.question.title}"`);
+                    }
+                    
+                    showToast(data.message, 'success');
+                    askQuestionForm.reset();
+                    
+                    // Reload list to sync with database
+                    console.log('Reloading questions list...');
+                    await loadSupportQuestions();
+                } else {
+                    console.error('Question submission failed:', data.message);
+                    showMessage(data.message, 'error', 'supportMessageAlert');
+                }
+            } catch (error) {
+                document.getElementById('supportLoadingSpinner').style.display = 'none';
+                console.error('Error submitting question:', error);
+                showMessage('Error submitting question: ' + error.message, 'error', 'supportMessageAlert');
+            }
+        });
+
+        // Admin reply handler
+        async function handleAdminReply(e) {
+            e.preventDefault();
+            console.log('=== handleAdminReply called ===');
+
+            const form = e.target;
+            
+            // Get question ID - CRITICAL to get exact value
+            let questionId = form.getAttribute('data-question-id');
+            console.log(`[1] Extracted data-question-id: "${questionId}" (type: ${typeof questionId})`);
+            
+            // Alternative fallback methods
+            if (!questionId) {
+                const hiddenInput = form.querySelector('input[type="hidden"][name="questionId"]');
+                if (hiddenInput) {
+                    questionId = hiddenInput.value;
+                    console.log(`[2] Extracted from hidden input: "${questionId}"`);
+                }
+            }
+            
+            if (!questionId) {
+                const parentDiv = form.closest('[data-question-id]');
+                if (parentDiv) {
+                    questionId = parentDiv.getAttribute('data-question-id');
+                    console.log(`[3] Extracted from parent div: "${questionId}"`);
+                }
+            }
+            
+            // Get reply text
+            const replyText = form.querySelector('.adminReplyText')?.value || form.querySelector('textarea')?.value;
+            console.log(`Reply text length: ${replyText?.length || 0}`);
+
+            // Validation
+            if (!questionId || questionId === 'undefined' || questionId === null) {
+                console.error('❌ CRITICAL: Question ID is missing or invalid:', questionId);
+                showMessage('Error: Question ID not found. Please refresh and try again.', 'error', 'supportMessageAlert');
+                return;
+            }
+
+            if (!replyText || replyText.trim() === '') {
+                console.error('❌ Reply text is empty!');
+                showMessage('Reply text cannot be empty', 'error', 'supportMessageAlert');
+                return;
+            }
+
+            const parsedQId = parseInt(questionId, 10);
+            if (!Number.isInteger(parsedQId) || parsedQId <= 0) {
+                console.error(`❌ Invalid question ID format: "${questionId}" -> ${parsedQId}`);
+                showMessage(`Error: Invalid question ID (${questionId})`, 'error', 'supportMessageAlert');
+                return;
+            }
+
+            try {
+                console.log(`📤 Sending reply for Question ${parsedQId}`);
+                console.log(`   - replyText length: ${replyText.trim().length}`);
+                
+                const payload = { questionId: parsedQId, replyText: replyText.trim() };
+                console.log(`📦 Payload:`, JSON.stringify(payload));
+                
+                const response = await fetch('/api/support-replies', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                console.log(`📨 Response: ${response.status} - ${data.message}`);
+
+                if (response.ok) {
+                    console.log(`✅ Reply submitted successfully for Question ${parsedQId}`);
+                    showToast(data.message, 'success');
+                    form.reset();
+                    console.log('Reloading questions...');
+                    await loadSupportQuestions();
+                } else {
+                    console.error(`❌ Reply submission failed - Status: ${response.status}, Message: ${data.message}`);
+                    showMessage(data.message || 'Failed to submit reply', 'error', 'supportMessageAlert');
+                }
+            } catch (error) {
+                console.error('❌ Exception sending reply:', error);
+                showMessage('Error: ' + error.message, 'error', 'supportMessageAlert');
+            }
+        }
+
+        // Load support questions when support tab is accessed
+        function loadSupportTab() {
+            loadSupportQuestions();
+        }
+
+        // Settings - Restricted Numbers Management
+        const addRestrictedForm = document.getElementById('addRestrictedForm');
+
+        async function loadRestrictedNumbers() {
+            try {
+                const response = await fetch('/api/restricted-numbers');
+                const data = await response.json();
+
+                if (data.success) {
+                    const numbers = data.numbers;
+                    const table = document.getElementById('restrictedNumbersTable');
+                    const listDiv = document.getElementById('restrictedNumbersList');
+                    const emptyMsg = document.getElementById('emptyMessage');
+
+                    // Store restricted prefixes globally
+                    restrictedPrefixes = numbers.map(num => num.prefix);
+
+                    if (numbers.length === 0) {
+                        restrictedPrefixes = [];
+                        listDiv.style.display = 'none';
+                        emptyMsg.textContent = 'No restricted prefixes found';
+                        return;
+                    }
+
+                    table.innerHTML = numbers.map(num => `
+                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                            <td style="padding: 12px 14px; font-size: 13px; color: #1a1a1a;">${num.prefix}</td>
+                            <td style="padding: 12px 14px; font-size: 13px; color: #666;">${num.description || '-'}</td>
+                            <td style="padding: 12px 14px; font-size: 13px; color: #666;">${num.createdBy}</td>
+                            <td style="padding: 12px 14px; text-align: center;">
+                                <button onclick="deleteRestrictedNumber(${num.prefixId})" style="background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                    listDiv.style.display = 'block';
+                    emptyMsg.style.display = 'none';
+                } else {
+                    showMessage(data.message, 'error', 'settingsMessageAlert');
+                }
+            } catch (error) {
+                console.error('Error loading restricted numbers:', error);
+                showMessage('Error loading restricted numbers', 'error', 'settingsMessageAlert');
+            }
+        }
+
+        async function deleteRestrictedNumber(prefixId) {
+            if (!confirm('Are you sure you want to remove this prefix?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/delete-restricted-number', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prefixId })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    loadRestrictedNumbers();
+                } else {
+                    showMessage(data.message, 'error', 'settingsMessageAlert');
+                }
+            } catch (error) {
+                console.error('Error deleting restricted number:', error);
+                showMessage('Error deleting restricted number', 'error', 'settingsMessageAlert');
+            }
+        }
+
+        addRestrictedForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prefix = document.getElementById('restrictedPrefix').value.trim();
+            const description = document.getElementById('restrictedDescription').value.trim();
+
+            if (!prefix) {
+                showMessage('Please enter a prefix', 'error', 'settingsMessageAlert');
+                return;
+            }
+
+            document.getElementById('addRestrictedLoading').style.display = 'block';
+
+            try {
+                const response = await fetch('/api/add-restricted-number', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prefix, description: description || null })
+                });
+
+                const data = await response.json();
+                document.getElementById('addRestrictedLoading').style.display = 'none';
+
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    addRestrictedForm.reset();
+                    loadRestrictedNumbers();
+                } else {
+                    showMessage(data.message, 'error', 'settingsMessageAlert');
+                }
+            } catch (error) {
+                document.getElementById('addRestrictedLoading').style.display = 'none';
+                console.error('Error adding restricted number:', error);
+                showMessage('Error: ' + error.message, 'error', 'settingsMessageAlert');
+            }
+        });
+
+        // Settings - Email Recipients Management
+        const addEmailForm = document.getElementById('addEmailForm');
+
+        async function loadEmailRecipients() {
+            try {
+                const response = await fetch('/api/recipient-emails');
+                const data = await response.json();
+
+                if (data.success) {
+                    const emails = data.emails;
+                    const table = document.getElementById('emailRecipientsTable');
+                    const listDiv = document.getElementById('emailRecipientsList');
+                    const emptyMsg = document.getElementById('emptyEmailMessage');
+
+                    if (emails.length === 0) {
+                        listDiv.style.display = 'none';
+                        emptyMsg.textContent = 'No email recipients found. Add one to get started!';
+                        return;
+                    }
+
+                    table.innerHTML = emails.map(email => `
+                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                            <td style="padding: 12px 14px; font-size: 13px; color: #1a1a1a;">${email.email}</td>
+                            <td style="padding: 12px 14px; font-size: 13px; color: #666;">${email.description || '-'}</td>
+                            <td style="padding: 12px 14px; font-size: 13px; color: #666;">${email.addedBy}</td>
+                            <td style="padding: 12px 14px; text-align: center;">
+                                <button onclick="deleteEmailRecipient(${email.emailId})" style="background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                    listDiv.style.display = 'block';
+                    emptyMsg.style.display = 'none';
+                } else {
+                    showMessage(data.message, 'error', 'emailMessageAlert');
+                }
+            } catch (error) {
+                console.error('Error loading email recipients:', error);
+                showMessage('Error loading email recipients', 'error', 'emailMessageAlert');
+            }
+        }
+
+        async function deleteEmailRecipient(emailId) {
+            if (!confirm('Are you sure you want to remove this email address?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/delete-recipient-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ emailId })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    loadEmailRecipients();
+                } else {
+                    showMessage(data.message, 'error', 'emailMessageAlert');
+                }
+            } catch (error) {
+                console.error('Error deleting email recipient:', error);
+                showMessage('Error deleting email recipient', 'error', 'emailMessageAlert');
+            }
+        }
+
+        addEmailForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('recipientEmail').value.trim();
+            const description = document.getElementById('emailDescription').value.trim();
+
+            if (!email) {
+                showMessage('Please enter an email address', 'error', 'emailMessageAlert');
+                return;
+            }
+
+            // Basic email validation
+            if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
+                showMessage('Please enter a valid email address', 'error', 'emailMessageAlert');
+                return;
+            }
+
+            document.getElementById('addEmailLoading').style.display = 'block';
+
+            try {
+                const response = await fetch('/api/add-recipient-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, description: description || null })
+                });
+
+                const data = await response.json();
+                document.getElementById('addEmailLoading').style.display = 'none';
+
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    addEmailForm.reset();
+                    loadEmailRecipients();
+                } else {
+                    showMessage(data.message, 'error', 'emailMessageAlert');
+                }
+            } catch (error) {
+                document.getElementById('addEmailLoading').style.display = 'none';
+                console.error('Error adding email recipient:', error);
+                showMessage('Error: ' + error.message, 'error', 'emailMessageAlert');
+            }
+        });
+
+        // Restricted Statuses Management
+        const addRestrictedStatusForm = document.getElementById('addRestrictedStatusForm');
+
+        async function loadRestrictedStatuses() {
+            try {
+                const response = await fetch('/api/restricted-statuses');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (data.success) {
+                    const statuses = data.statuses;
+                    const table = document.getElementById('restrictedStatusesTable');
+                    const listDiv = document.getElementById('restrictedStatusesList');
+                    const emptyMsg = document.getElementById('emptyStatusMessage');
+
+                    // Store restricted status codes globally
+                    restrictedStatuses = statuses.map(status => status.statusV);
+
+                    if (statuses.length === 0) {
+                        restrictedStatuses = [];
+                        listDiv.style.display = 'none';
+                        emptyMsg.textContent = 'No restricted statuses found';
+                        return;
+                    }
+
+                    table.innerHTML = statuses.map(status => `
+                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                            <td style="padding: 12px 14px; font-size: 13px; color: #1a1a1a; font-weight: 600;">${status.statusV}</td>
+                            <td style="padding: 12px 14px; font-size: 13px; color: #666;">${status.description || '-'}</td>
+                            <td style="padding: 12px 14px; font-size: 13px; color: #666;">${status.createdBy}</td>
+                            <td style="padding: 12px 14px; text-align: center;">
+                                <button onclick="deleteRestrictedStatus(${status.statusId})" style="background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                    listDiv.style.display = 'block';
+                    emptyMsg.style.display = 'none';
+                } else {
+                    showMessage(data.message, 'error', 'statusMessageAlert');
+                }
+            } catch (error) {
+                console.error('Error loading restricted statuses:', error);
+                showMessage('Error loading restricted statuses: ' + error.message, 'error', 'statusMessageAlert');
+            }
+        }
+
+        async function deleteRestrictedStatus(statusId) {
+            if (!confirm('Are you sure you want to remove this restricted status?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/delete-restricted-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ statusId })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    loadRestrictedStatuses();
+                } else {
+                    showMessage(data.message, 'error', 'statusMessageAlert');
+                }
+            } catch (error) {
+                console.error('Error deleting restricted status:', error);
+                showMessage('Error deleting restricted status: ' + error.message, 'error', 'statusMessageAlert');
+            }
+        }
+
+        if (addRestrictedStatusForm) {
+            addRestrictedStatusForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const statusV = document.getElementById('restrictedStatus').value.trim().toUpperCase();
+                const description = document.getElementById('statusDescription').value.trim();
+
+            if (!statusV) {
+                showMessage('Please enter a status', 'error', 'statusMessageAlert');
+                return;
+            }
+
+            document.getElementById('addStatusLoading').style.display = 'block';
+
+            try {
+                const response = await fetch('/api/add-restricted-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ statusV, description: description || null })
+                });
+
+                const data = await response.json();
+                document.getElementById('addStatusLoading').style.display = 'none';
+
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    addRestrictedStatusForm.reset();
+                    loadRestrictedStatuses();
+                } else {
+                    showMessage(data.message, 'error', 'statusMessageAlert');
+                }
+            } catch (error) {
+                document.getElementById('addStatusLoading').style.display = 'none';
+                console.error('Error adding restricted status:', error);
+                showMessage('Error: ' + error.message, 'error', 'statusMessageAlert');
+            }
+            });
+        }
+
+        // Restricted Categories Management
+        const addRestrictedCategoryForm = document.getElementById('addRestrictedCategoryForm');
+
+        async function loadRestrictedCategories() {
+            try {
+                const response = await fetch('/api/restricted-categories');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                if (data.success) {
+                    const categories = data.categories;
+                    const table = document.getElementById('restrictedCategoriesTable');
+                    const listDiv = document.getElementById('restrictedCategoriesList');
+                    const emptyMsg = document.getElementById('emptyCategoryMessage');
+
+                    // Store restricted category codes globally
+                    restrictedCategories = categories.map(cat => cat.categoryCodeV);
+
+                    if (categories.length === 0) {
+                        restrictedCategories = [];
+                        listDiv.style.display = 'none';
+                        emptyMsg.textContent = 'No restricted categories found';
+                        return;
+                    }
+
+                    table.innerHTML = categories.map(category => `
+                        <tr style="border-bottom: 1px solid #f0f0f0;">
+                            <td style="padding: 12px 14px; font-size: 13px; color: #1a1a1a; font-weight: 600;">${category.categoryCodeV}</td>
+                            <td style="padding: 12px 14px; font-size: 13px; color: #666;">${category.description || '-'}</td>
+                            <td style="padding: 12px 14px; font-size: 13px; color: #666;">${category.createdBy}</td>
+                            <td style="padding: 12px 14px; text-align: center;">
+                                <button onclick="deleteRestrictedCategory(${category.categoryId})" style="background: #e74c3c; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">Delete</button>
+                            </td>
+                        </tr>
+                    `).join('');
+
+                    listDiv.style.display = 'block';
+                    emptyMsg.style.display = 'none';
+                } else {
+                    showMessage(data.message, 'error', 'categoryMessageAlert');
+                }
+            } catch (error) {
+                console.error('Error loading restricted categories:', error);
+                showMessage('Error loading restricted categories: ' + error.message, 'error', 'categoryMessageAlert');
+            }
+        }
+
+        async function deleteRestrictedCategory(categoryId) {
+            if (!confirm('Are you sure you want to remove this restricted category?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/delete-restricted-category', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ categoryId })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    loadRestrictedCategories();
+                } else {
+                    showMessage(data.message, 'error', 'categoryMessageAlert');
+                }
+            } catch (error) {
+                console.error('Error deleting restricted category:', error);
+                showMessage('Error deleting restricted category: ' + error.message, 'error', 'categoryMessageAlert');
+            }
+        }
+
+        if (addRestrictedCategoryForm) {
+            addRestrictedCategoryForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const categoryCodeV = document.getElementById('restrictedCategory').value.trim().toUpperCase();
+                const description = document.getElementById('categoryDescription').value.trim();
+
+                if (!categoryCodeV) {
+                    showMessage('Please enter a category code', 'error', 'categoryMessageAlert');
+                    return;
+                }
+
+                document.getElementById('addCategoryLoading').style.display = 'block';
+
+                try {
+                    const response = await fetch('/api/add-restricted-category', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ categoryCodeV, description: description || null })
+                    });
+
+                    const data = await response.json();
+                    document.getElementById('addCategoryLoading').style.display = 'none';
+
+                    if (response.ok) {
+                        showToast(data.message, 'success');
+                        addRestrictedCategoryForm.reset();
+                        loadRestrictedCategories();
+                    } else {
+                        showMessage(data.message, 'error', 'categoryMessageAlert');
+                    }
+                } catch (error) {
+                    document.getElementById('addCategoryLoading').style.display = 'none';
+                    console.error('Error adding restricted category:', error);
+                    showMessage('Error: ' + error.message, 'error', 'categoryMessageAlert');
+                }
+            });
+        }
+
+        // Email Setting Management - Toggle
+        const emailSendingToggle = document.getElementById('emailSendingToggle');
+
+        async function loadEmailSetting() {
+            try {
+                const response = await fetch('/api/email-setting');
+                const data = await response.json();
+
+                if (data.success) {
+                    emailSendingToggle.checked = data.emailEnabled;
+                    updateEmailStatusDisplay(data.emailEnabled);
+                } else {
+                    showMessage(data.message, 'error', 'emailSettingsMessageAlert');
+                }
+            } catch (error) {
+                console.error('Error loading email setting:', error);
+                showMessage('Error loading email setting', 'error', 'emailSettingsMessageAlert');
+            }
+        }
+
+        function updateEmailStatusDisplay(enabled) {
+            const statusText = document.getElementById('emailStatusText');
+            if (enabled) {
+                statusText.textContent = 'enabled';
+                statusText.style.color = '#27ae60';
+            } else {
+                statusText.textContent = 'disabled';
+                statusText.style.color = '#e74c3c';
+            }
+        }
+
+        emailSendingToggle.addEventListener('change', async (e) => {
+            const enabled = e.target.checked;
+            document.getElementById('emailSettingLoading').style.display = 'inline-flex';
+
+            try {
+                const response = await fetch('/api/update-email-setting', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled })
+                });
+
+                const data = await response.json();
+                document.getElementById('emailSettingLoading').style.display = 'none';
+
+                if (response.ok) {
+                    showToast(data.message, 'success');
+                    updateEmailStatusDisplay(enabled);
+                } else {
+                    // Revert toggle if update failed
+                    emailSendingToggle.checked = !enabled;
+                    showMessage(data.message, 'error', 'emailSettingsMessageAlert');
+                }
+            } catch (error) {
+                document.getElementById('emailSettingLoading').style.display = 'none';
+                console.error('Error updating email setting:', error);
+                // Revert toggle if update failed
+                emailSendingToggle.checked = !enabled;
+                showMessage('Error: ' + error.message, 'error', 'emailSettingsMessageAlert');
+            }
+        });
+
+        // Questions Setting Management - Toggle
+        async function loadQuestionsSetting() {
+            try {
+                const questionsSendingToggle = document.getElementById('questionsSendingToggle');
+                if (!questionsSendingToggle) {
+                    console.warn('Questions toggle element not found');
+                    return;
+                }
+
+                const response = await fetch('/api/questions-setting');
+                const data = await response.json();
+
+                if (data.success) {
+                    questionsSendingToggle.checked = data.questionsEnabled;
+                    updateQuestionsStatusDisplay(data.questionsEnabled);
+                } else {
+                    showMessage(data.message, 'error', 'questionsSettingsMessageAlert');
+                }
+            } catch (error) {
+                console.error('Error loading questions setting:', error);
+                showMessage('Error loading questions setting', 'error', 'questionsSettingsMessageAlert');
+            }
+        }
+
+        function updateQuestionsStatusDisplay(enabled) {
+            const statusText = document.getElementById('questionsStatusText');
+            if (enabled) {
+                statusText.textContent = 'enabled';
+                statusText.style.color = '#27ae60';
+            } else {
+                statusText.textContent = 'disabled';
+                statusText.style.color = '#e74c3c';
+            }
+        }
+
+        // Add event listener for questions toggle when element exists
+        document.addEventListener('DOMContentLoaded', function() {
+            const questionsSendingToggle = document.getElementById('questionsSendingToggle');
+            if (questionsSendingToggle) {
+                questionsSendingToggle.addEventListener('change', async (e) => {
+                    const enabled = e.target.checked;
+                    document.getElementById('questionsSettingLoading').style.display = 'inline-flex';
+
+                    try {
+                        const response = await fetch('/api/update-questions-setting', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ enabled })
+                        });
+
+                        const data = await response.json();
+                        document.getElementById('questionsSettingLoading').style.display = 'none';
+
+                        if (response.ok) {
+                            showToast(data.message, 'success');
+                            updateQuestionsStatusDisplay(enabled);
+                        } else {
+                            // Revert toggle if update failed
+                            questionsSendingToggle.checked = !enabled;
+                            showMessage(data.message, 'error', 'questionsSettingsMessageAlert');
+                        }
+                    } catch (error) {
+                        document.getElementById('questionsSettingLoading').style.display = 'none';
+                        console.error('Error updating questions setting:', error);
+                        // Revert toggle if update failed
+                        questionsSendingToggle.checked = !enabled;
+                        showMessage('Error: ' + error.message, 'error', 'questionsSettingsMessageAlert');
+                    }
+                });
+            }
+        });
+    </script>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <i><strong>CLM</strong></i>
+        <i>Customer Lifecycle Management 1.0.0</i>
+        <i>Powered by <strong>G-TECH</strong></i>
+    </footer>
+</body>
+</html>

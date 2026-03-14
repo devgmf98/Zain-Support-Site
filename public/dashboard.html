@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f9fafb;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            display: none;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .sidebar-header {
+            padding: 0 0 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+            margin-bottom: 12px;
+        }
+
+        .sidebar-header h1 {
+            font-size: 15px;
+            color: #1a1a1a;
+            margin-bottom: 4px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .sidebar-header h1 span {
+            background: #f0f0f0;
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            color: #666;
+            font-weight: 600;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .sidebar-nav::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-section {
+            margin-bottom: 12px;
+        }
+
+        .nav-section-title {
+            font-size: 9px;
+            font-weight: 700;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            padding: 8px 10px;
+            margin-bottom: 4px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            margin-bottom: 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #666;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .nav-item:hover {
+            background: #f5f5f5;
+            color: #1a1a1a;
+        }
+
+        .nav-item.active {
+            background: #e8f4f8;
+            color: #0084d4;
+            font-weight: 600;
+        }
+
+        .nav-item-icon {
+            font-size: 18px;
+            min-width: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-top: auto;
+            border-top: 1px solid #f0f0f0;
+            padding-top: 10px;
+            margin-top: 10px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .user-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .user-details-name {
+            font-size: 10px;
+            font-weight: 600;
+            color: #1a1a1a;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .user-details-email {
+            font-size: 9px;
+            color: #999;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: #e74c3c;
+            padding: 0;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .main-content {
+            margin-left: 0;
+            flex: 1;
+            padding: 0;
+            overflow: hidden;
+            width: 100%;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Hide scrollbars */
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        
+        body {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .main-content::-webkit-scrollbar {
+            display: none;
+        }
+
+        .dashboard-header {
+            margin-bottom: 10px;
+            padding: 0 5px;
+        }
+
+        .dashboard-header h1 {
+            font-size: 28px;
+            color: #1a1a1a;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .dashboard-header p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 10px 12px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #0084d4;
+        }
+
+        .stat-card.failed {
+            border-left-color: #e74c3c;
+        }
+
+        .stat-card.users {
+            border-left-color: #27ae60;
+        }
+
+        .stat-card.admins {
+            border-left-color: #f39c12;
+        }
+
+        .stat-label {
+            font-size: 10px;
+            color: #999;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 22px;
+            color: #1a1a1a;
+            font-weight: 700;
+        }
+
+        .stat-change {
+            font-size: 11px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 10px;
+            overflow: hidden;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .charts-grid::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .chart-card::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chart-title {
+            font-size: 16px;
+            color: #1a1a1a;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            overflow: hidden;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .chart-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                margin-left: 0;
+                padding: 15px;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>🎯 Admin <span>v2.0</span></h1>
+        </div>
+
+        <div class="sidebar-nav">
+            <div class="nav-section">
+                <div class="nav-section-title">Tools</div>
+                <a href="index.html" class="nav-item">
+                    <span class="nav-item-icon">🔍</span>
+                    <span class="nav-item-label">View Status</span>
+                </a>
+                <a href="dashboard.html" class="nav-item active">
+                    <span class="nav-item-icon">📊</span>
+                    <span class="nav-item-label">Dashboard</span>
+                </a>
+                <a href="index.html" class="nav-item" onclick="goToTab('mobile')">
+                    <span class="nav-item-icon">📱</span>
+                    <span class="nav-item-label">Mobile Update</span>
+                </a>
+                <a href="index.html" class="nav-item" onclick="goToTab('bulk')">
+                    <span class="nav-item-icon">📦</span>
+                    <span class="nav-item-label">Bulk Update</span>
+                </a>
+                <a href="index.html" class="nav-item" onclick="goToTab('sim')">
+                    <span class="nav-item-icon">🔄</span>
+                    <span class="nav-item-label">SIM Update</span>
+                </a>
+            </div>
+
+            <!-- Account Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Account</div>
+                
+                <!-- Settings Subsection - Admin Only -->
+                <div id="settingsDropdown" style="padding-top: 10px; display: none;">
+                    <div class="nav-item" style="cursor: pointer; justify-content: space-between; display: flex; align-items: center;" onclick="toggleSettingsPanel()">
+                        <span style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 16px;">⚙️</span>
+                            <span>Settings</span>
+                        </span>
+                        <span id="settingsIcon" style="font-size: 12px; transition: transform 0.3s ease; transform: rotate(0deg);">▼</span>
+                    </div>
+                    <div id="settingsNav" style="display: none; flex-direction: column; gap: 0; margin-top: 8px; margin-left: 8px; border-left: 2px solid #e0e0e0; padding-left: 12px;">
+                        <div onclick="goToSettings('restricted-prefix')" style="display: flex; align-items: center; padding: 8px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; gap: 6px; color: #666; border-radius: 4px;">
+                            <span style="font-size: 14px;">📌</span>
+                            <span>Restricted Prefix</span>
+                        </div>
+                        <div onclick="goToSettings('restricted-status')" style="display: flex; align-items: center; padding: 8px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; gap: 6px; color: #666; border-radius: 4px;">
+                            <span style="font-size: 14px;">🔐</span>
+                            <span>Restricted Status</span>
+                        </div>
+                        <div onclick="goToSettings('restricted-category')" style="display: flex; align-items: center; padding: 8px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; gap: 6px; color: #666; border-radius: 4px;">
+                            <span style="font-size: 14px;">📦</span>
+                            <span>Restricted Category</span>
+                        </div>
+                        <div onclick="goToSettings('email-settings')" style="display: flex; align-items: center; padding: 8px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; gap: 6px; color: #666; border-radius: 4px;">
+                            <span style="font-size: 14px;">⚙️</span>
+                            <span>Email Settings</span>
+                        </div>
+                        <div onclick="goToSettings('email-recipients')" style="display: flex; align-items: center; padding: 8px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; gap: 6px; color: #666; border-radius: 4px;">
+                            <span style="font-size: 14px;">📧</span>
+                            <span>Email Recipients</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-item">
+                    <span style="font-size: 16px;">📖</span>
+                    <span>Documentation</span>
+                </div>
+                <div class="nav-item">
+                    <span style="font-size: 16px;">🆘</span>
+                    <span>Support</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="user-info">
+            <div class="user-avatar" id="userAvatar">A</div>
+            <div class="user-details">
+                <span class="user-details-name" id="userName">Admin</span>
+                <span class="user-details-email" id="userEmail">admin@zain.com</span>
+            </div>
+            <button class="logout-btn" onclick="logout()">↪️</button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="dashboard-header">
+            <h1>📊 Dashboard</h1>
+            <p>Admin analytics and system overview</p>
+        </div>
+
+        <div id="errorContainer"></div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card users">
+                <div class="stat-label">Total Staff</div>
+                <div class="stat-value" id="totalStaff">-</div>
+                <div class="stat-change">Active users</div>
+            </div>
+            <div class="stat-card admins">
+                <div class="stat-label">Total Admins</div>
+                <div class="stat-value" id="totalAdmins">-</div>
+                <div class="stat-change">Administrator accounts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Updated Numbers</div>
+                <div class="stat-value" id="totalUpdatedNumbers">-</div>
+                <div class="stat-change">Total mobile updates</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Updated SIMs</div>
+                <div class="stat-value" id="totalUpdatedSims">-</div>
+                <div class="stat-change">Total SIM updates</div>
+            </div>
+            <div class="stat-card failed">
+                <div class="stat-label">Failed Numbers</div>
+                <div class="stat-value" id="totalFailedNumbers">-</div>
+                <div class="stat-change">Failed mobile updates</div>
+            </div>
+            <div class="stat-card failed">
+                <div class="stat-label">Failed SIMs</div>
+                <div class="stat-value" id="totalFailedSims">-</div>
+                <div class="stat-change">Failed SIM updates</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">📱 Daily Mobile Number Updates</div>
+                <div class="chart-container">
+                    <canvas id="numbersChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">🔄 Daily SIM Updates</div>
+                <div class="chart-container">
+                    <canvas id="simsChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Report Generator Section -->
+        <div style="margin-top: 30px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);">
+            <div style="margin-bottom: 20px;">
+                <h2 style="margin-top: 0; color: #1a1a1a; font-size: 20px;">📋 Report Generator</h2>
+                <p style="color: #666; margin-bottom: 20px;">Generate reports for mobile numbers, SIM cards, and failed updates</p>
+            </div>
+
+            <div id="reportError"></div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">Start Date</label>
+                    <input type="date" id="reportStartDate" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                </div>
+                <div>
+                    <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">End Date</label>
+                    <input type="date" id="reportEndDate" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                </div>
+                <div style="display: flex; align-items: flex-end; gap: 10px;">
+                    <button id="generateReportBtn" style="flex: 1; padding: 10px 20px; background: #0084d4; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px;">
+                        Generate Report
+                    </button>
+                    <button id="downloadReportBtn" style="flex: 1; padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; display: none;">
+                        ⬇ Download Excel
+                    </button>
+                </div>
+            </div>
+
+            <div id="reportLoadingSpinner" style="display: none; text-align: center; padding: 20px;">
+                <div style="display: inline-block; width: 30px; height: 30px; border: 3px solid #f3f3f3; border-top: 3px solid #0084d4; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <p style="margin-top: 10px; color: #666;">Generating report...</p>
+            </div>
+
+            <div id="reportPreviewContainer" style="display: none; margin-top: 20px;">
+                <h3 style="color: #1a1a1a; margin-bottom: 15px;">Preview (First 10 Records)</h3>
+                
+                <div id="numbersPreview" style="margin-bottom: 30px;">
+                    <h4 style="color: #0084d4; margin-bottom: 10px;">📱 Mobile Numbers Logs</h4>
+                    <div id="numbersPreviewTable" style="overflow-x: auto;"></div>
+                </div>
+
+                <div id="simsPreview" style="margin-bottom: 30px;">
+                    <h4 style="color: #0084d4; margin-bottom: 10px;">💳 SIM Cards Logs</h4>
+                    <div id="simsPreviewTable" style="overflow-x: auto;"></div>
+                </div>
+
+                <div id="failedNumbersPreview" style="margin-bottom: 30px;">
+                    <h4 style="color: #e74c3c; margin-bottom: 10px;">❌ Failed Mobile Logs</h4>
+                    <div id="failedNumbersPreviewTable" style="overflow-x: auto;"></div>
+                </div>
+
+                <div id="failedSimsPreview" style="margin-bottom: 30px;">
+                    <h4 style="color: #e74c3c; margin-bottom: 10px;">❌ Failed SIM Logs</h4>
+                    <div id="failedSimsPreviewTable" style="overflow-x: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+
+    <script>
+        let numbersChart = null;
+        let simsChart = null;
+
+        // Initialize dashboard
+        async function initDashboard() {
+            try {
+                // Check if user is logged in and is admin
+                const userResponse = await fetch('/api/current-user');
+                const userData = await userResponse.json();
+
+                if (!userData.user || userData.user.role !== 'admin') {
+                    window.location.href = '/';
+                    return;
+                }
+
+                // Update user info
+                document.getElementById('userName').textContent = userData.user.username;
+                document.getElementById('userEmail').textContent = userData.user.email || 'admin@zain.com';
+                document.getElementById('userAvatar').textContent = userData.user.username.charAt(0).toUpperCase();
+
+                // Load statistics
+                await loadStatistics();
+
+                // Load chart data
+                await loadChartData();
+            } catch (error) {
+                console.error('Error initializing dashboard:', error);
+                showError('Failed to load dashboard data');
+            }
+        }
+
+        // Load statistics
+        async function loadStatistics() {
+            try {
+                const response = await fetch('/api/dashboard-stats');
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to load statistics');
+                }
+
+                const stats = result.data;
+                document.getElementById('totalStaff').textContent = stats.totalStaff;
+                document.getElementById('totalAdmins').textContent = stats.totalAdmins;
+                document.getElementById('totalUpdatedNumbers').textContent = stats.totalUpdatedNumbers;
+                document.getElementById('totalUpdatedSims').textContent = stats.totalUpdatedSims;
+                document.getElementById('totalFailedNumbers').textContent = stats.totalFailedNumbers;
+                document.getElementById('totalFailedSims').textContent = stats.totalFailedSims;
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+                showError('Failed to load statistics: ' + error.message);
+            }
+        }
+
+        // Load chart data
+        async function loadChartData() {
+            try {
+                const response = await fetch('/api/dashboard-charts');
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to load chart data');
+                }
+
+                const chartData = result.data;
+                renderNumbersChart(chartData);
+                renderSimsChart(chartData);
+            } catch (error) {
+                console.error('Error loading chart data:', error);
+                showError('Failed to load chart data: ' + error.message);
+            }
+        }
+
+        // Render numbers chart
+        function renderNumbersChart(data) {
+            const ctx = document.getElementById('numbersChart').getContext('2d');
+
+            if (numbersChart) {
+                numbersChart.destroy();
+            }
+
+            numbersChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.dates,
+                    datasets: [
+                        {
+                            label: 'Updated Numbers',
+                            data: data.numbersUpdated,
+                            backgroundColor: '#0084d4',
+                            borderColor: '#0084d4',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Failed Numbers',
+                            data: data.numbersFailed,
+                            backgroundColor: '#e74c3c',
+                            borderColor: '#e74c3c',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12,
+                                    weight: '600'
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false,
+                                color: '#f0f0f0'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                },
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render SIMs chart
+        function renderSimsChart(data) {
+            const ctx = document.getElementById('simsChart').getContext('2d');
+
+            if (simsChart) {
+                simsChart.destroy();
+            }
+
+            simsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.dates,
+                    datasets: [
+                        {
+                            label: 'Updated SIMs',
+                            data: data.simsUpdated,
+                            backgroundColor: '#0084d4',
+                            borderColor: '#0084d4',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Failed SIMs',
+                            data: data.simsFailed,
+                            backgroundColor: '#e74c3c',
+                            borderColor: '#e74c3c',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12,
+                                    weight: '600'
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false,
+                                color: '#f0f0f0'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                },
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Show error
+        function showError(message) {
+            const errorContainer = document.getElementById('errorContainer');
+            errorContainer.innerHTML = `<div class="error">⚠️ ${message}</div>`;
+        }
+
+        // Logout
+        function logout() {
+            fetch('/api/logout', { method: 'POST' }).then(() => {
+                window.location.href = '/';
+            });
+        }
+
+        // Navigate to tab in main page
+        function goToTab(tab) {
+            sessionStorage.setItem('newTab', tab);
+            window.location.href = 'index.html';
+        }
+
+        // Navigate to settings
+        function goToSettings(section) {
+            sessionStorage.setItem('newTab', 'settings');
+            sessionStorage.setItem('settingsSection', section);
+            window.location.href = 'index.html';
+        }
+
+        // Toggle settings panel
+        function toggleSettingsPanel() {
+            const settingsNav = document.getElementById('settingsNav');
+            const settingsIcon = document.getElementById('settingsIcon');
+            const isVisible = settingsNav.style.display === 'flex';
+            settingsNav.style.display = isVisible ? 'none' : 'flex';
+            settingsIcon.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+
+        // Initialize user info on dashboard
+        async function initUserInfo() {
+            try {
+                const response = await fetch('/api/user-info');
+                const data = await response.json();
+                if (data.success && data.user) {
+                    const user = data.user;
+                    document.getElementById('userName').textContent = user.username || 'User';
+                    document.getElementById('userEmail').textContent = user.email || user.username + '@zain.com';
+                    document.getElementById('userAvatar').textContent = (user.username || 'U')[0].toUpperCase();
+                    
+                    // Show Settings dropdown only for admin users
+                    const settingsDropdown = document.getElementById('settingsDropdown');
+                    if (user.role === 'admin') {
+                        settingsDropdown.style.display = 'block';
+                    } else {
+                        settingsDropdown.style.display = 'none';
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading user info:', error);
+            }
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            initDashboard();
+            initUserInfo();
+        });
+
+        // Report Generator Functionality
+        const reportStartDate = document.getElementById('reportStartDate');
+        const reportEndDate = document.getElementById('reportEndDate');
+        const generateReportBtn = document.getElementById('generateReportBtn');
+        const downloadReportBtn = document.getElementById('downloadReportBtn');
+
+        // Set default dates (last 30 days)
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+        reportEndDate.valueAsDate = today;
+        reportStartDate.valueAsDate = thirtyDaysAgo;
+
+        generateReportBtn.addEventListener('click', async () => {
+            const startDate = reportStartDate.value;
+            const endDate = reportEndDate.value;
+
+            if (!startDate || !endDate) {
+                showError('Please select both start and end dates');
+                return;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                showError('Start date must be before end date');
+                return;
+            }
+
+            document.getElementById('reportLoadingSpinner').style.display = 'block';
+            document.getElementById('reportPreviewContainer').style.display = 'none';
+            document.getElementById('reportError').textContent = '';
+
+            try {
+                const response = await fetch('/api/generate-report', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ startDate, endDate })
+                });
+
+                const data = await response.json();
+                document.getElementById('reportLoadingSpinner').style.display = 'none';
+
+                if (response.ok) {
+                    displayReportPreview(data);
+                    downloadReportBtn.style.display = 'inline-block';
+                } else {
+                    showError(data.message || 'Failed to generate report');
+                }
+            } catch (error) {
+                document.getElementById('reportLoadingSpinner').style.display = 'none';
+                showError('Error generating report: ' + error.message);
+            }
+        });
+
+        downloadReportBtn.addEventListener('click', async () => {
+            const startDate = reportStartDate.value;
+            const endDate = reportEndDate.value;
+
+            if (!startDate || !endDate) {
+                showError('Please select both start and end dates');
+                return;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                showError('Start date must be before end date');
+                return;
+            }
+
+            document.getElementById('reportLoadingSpinner').style.display = 'block';
+            document.getElementById('reportLoadingSpinner').innerHTML = '<div style="display: inline-block; width: 30px; height: 30px; border: 3px solid #f3f3f3; border-top: 3px solid #27ae60; border-radius: 50%; animation: spin 1s linear infinite;"></div><p style="margin-top: 10px; color: #666;">Downloading report...</p>';
+
+            try {
+                const response = await fetch(`/api/download-report?startDate=${startDate}&endDate=${endDate}`);
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    showError(errorData.message || 'Failed to download report');
+                    document.getElementById('reportLoadingSpinner').style.display = 'none';
+                    return;
+                }
+
+                // Get the filename from the response headers
+                const contentDisposition = response.headers.get('content-disposition');
+                let filename = `Report_${startDate}_to_${endDate}.xlsx`;
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename="?([^"]*)"?/);
+                    if (filenameMatch) {
+                        filename = filenameMatch[1];
+                    }
+                }
+
+                // Create a blob from the response
+                const blob = await response.blob();
+                
+                // Create a temporary download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                
+                // Cleanup
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                document.getElementById('reportLoadingSpinner').style.display = 'none';
+                showSuccess(`Report downloaded successfully as ${filename}`);
+            } catch (error) {
+                document.getElementById('reportLoadingSpinner').style.display = 'none';
+                showError('Error downloading report: ' + error.message);
+            }
+        });
+
+        function displayReportPreview(data) {
+            const container = document.getElementById('reportPreviewContainer');
+            
+            // Display numbers preview
+            if (data.numbers.length > 0) {
+                document.getElementById('numbersPreview').style.display = 'block';
+                document.getElementById('numbersPreviewTable').innerHTML = createTable(data.numbers, ['MOBILE_NUMBER', 'STATUS_BEFORE', 'STATUS_AFTER', 'USERNAME', 'UPDATE_TIME']);
+            } else {
+                document.getElementById('numbersPreview').style.display = 'none';
+            }
+
+            // Display SIMs preview
+            if (data.sims.length > 0) {
+                document.getElementById('simsPreview').style.display = 'block';
+                document.getElementById('simsPreviewTable').innerHTML = createTable(data.sims, ['SIM_IDENTIFIER', 'STATUS_BEFORE', 'STATUS_AFTER', 'USERNAME', 'UPDATE_TIME']);
+            } else {
+                document.getElementById('simsPreview').style.display = 'none';
+            }
+
+            // Display failed numbers preview
+            if (data.failedNumbers.length > 0) {
+                document.getElementById('failedNumbersPreview').style.display = 'block';
+                document.getElementById('failedNumbersPreviewTable').innerHTML = createTable(data.failedNumbers, ['MOBILE_NUMBER', 'FAILURE_REASON', 'USERNAME', 'CREATED_AT']);
+            } else {
+                document.getElementById('failedNumbersPreview').style.display = 'none';
+            }
+
+            // Display failed SIMs preview
+            if (data.failedSims.length > 0) {
+                document.getElementById('failedSimsPreview').style.display = 'block';
+                document.getElementById('failedSimsPreviewTable').innerHTML = createTable(data.failedSims, ['SIM_IDENTIFIER', 'FAILURE_REASON', 'USERNAME', 'CREATED_AT']);
+            } else {
+                document.getElementById('failedSimsPreview').style.display = 'none';
+            }
+
+            container.style.display = 'block';
+        }
+
+        function createTable(data, columns) {
+            let html = '<table style="width: 100%; border-collapse: collapse; font-size: 12px;"><thead><tr style="background: #f5f5f5;">';
+            
+            columns.forEach(col => {
+                html += `<th style="padding: 10px; text-align: left; border: 1px solid #ddd; font-weight: 600;">${col}</th>`;
+            });
+            
+            html += '</tr></thead><tbody>';
+            
+            data.forEach(row => {
+                html += '<tr>';
+                columns.forEach(col => {
+                    let value = row[col] || '-';
+                    html += `<td style="padding: 8px; border: 1px solid #ddd;">${value}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function showError(message) {
+            const errorContainer = document.getElementById('reportError');
+            errorContainer.textContent = message;
+            errorContainer.style.color = '#e74c3c';
+            errorContainer.style.padding = '12px';
+            errorContainer.style.background = '#fadbd8';
+            errorContainer.style.borderRadius = '6px';
+            errorContainer.style.marginBottom = '15px';
+        }
+
+        function showSuccess(message) {
+            const errorContainer = document.getElementById('reportError');
+            errorContainer.textContent = message;
+            errorContainer.style.color = '#155724';
+            errorContainer.style.padding = '12px';
+            errorContainer.style.background = '#d4edda';
+            errorContainer.style.borderRadius = '6px';
+            errorContainer.style.marginBottom = '15px';
+            setTimeout(() => {
+                errorContainer.textContent = '';
+            }, 5000);
+        }
+
+        // Refresh data every 5 minutes
+        setInterval(() => {
+            loadStatistics();
+            loadChartData();
+        }, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
