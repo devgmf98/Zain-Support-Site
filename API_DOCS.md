@@ -17,6 +17,8 @@ Most endpoints require user authentication via session. Users must login first t
 
 Login user with credentials and create a session.
 
+## Roles
+The roles available in the system are "admin", "staff", "corporate", and "shop".
 **Request Body:**
 ```json
 {
@@ -115,7 +117,7 @@ Create a new user. **Admin only**.
 ```json
 {
   "success": true,
-  "message": "User 'john_staff' created successfully with role 'staff'"
+  "role": "staff" // or "corporate" or "shop"
 }
 ```
 
@@ -138,7 +140,7 @@ Create a new user. **Admin only**.
 ---
 
 ### 5. Get All Users
-**GET** `/api/users`
+- Role must be one of: "admin", "staff", "corporate", "shop"
 
 Get list of all users. **Admin only**.
 

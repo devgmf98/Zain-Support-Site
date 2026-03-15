@@ -901,16 +901,34 @@ async function createInitialUsers(connection) {
       VALUES (ZAINSUPPORTUSERS_SEQ.NEXTVAL, 'admin', :adminPassword, 'admin', 1)
     `;
 
+
     const insertStaffQuery = `
       INSERT INTO ZAINSUPPORTUSERS (USER_ID, USERNAME, PASSWORD, ROLE, ACTIVE)
       VALUES (ZAINSUPPORTUSERS_SEQ.NEXTVAL, 'staff', :staffPassword, 'staff', 1)
     `;
+    const insertCorporateQuery = `
+      INSERT INTO ZAINSUPPORTUSERS (USER_ID, USERNAME, PASSWORD, ROLE, ACTIVE)
+      VALUES (ZAINSUPPORTUSERS_SEQ.NEXTVAL, 'corporate', :corporatePassword, 'corporate', 1)
+    `;
+    const insertShopQuery = `
+      INSERT INTO ZAINSUPPORTUSERS (USER_ID, USERNAME, PASSWORD, ROLE, ACTIVE)
+      VALUES (ZAINSUPPORTUSERS_SEQ.NEXTVAL, 'shop', :shopPassword, 'shop', 1)
+    `;
+
+    const corporatePasswordHash = await bcrypt.hash('corporate123', 10);
+    const shopPasswordHash = await bcrypt.hash('shop123', 10);
 
     await connection.execute(insertAdminQuery, { adminPassword: adminPasswordHash }, { autoCommit: true });
     console.log('[' + new Date().toISOString() + '] ✓ Admin user created (password: admin123)');
 
     await connection.execute(insertStaffQuery, { staffPassword: staffPasswordHash }, { autoCommit: true });
     console.log('[' + new Date().toISOString() + '] ✓ Staff user created (password: staff123)');
+
+    await connection.execute(insertCorporateQuery, { corporatePassword: corporatePasswordHash }, { autoCommit: true });
+    console.log('[' + new Date().toISOString() + '] ✓ Corporate user created (password: corporate123)');
+
+    await connection.execute(insertShopQuery, { shopPassword: shopPasswordHash }, { autoCommit: true });
+    console.log('[' + new Date().toISOString() + '] ✓ Shop user created (password: shop123)');
 
   } catch (err) {
     console.error('[' + new Date().toISOString() + '] Error creating initial users:', err.message);
@@ -950,29 +968,35 @@ async function ensureDefaultUsers() {
       console.log('[' + new Date().toISOString() + '] Admin user already exists');
     }
     
-    // Check if staff user exists
-    const checkStaffQuery = `SELECT COUNT(*) as count FROM ZAINSUPPORTUSERS WHERE USERNAME = 'staff'`;
-    const staffResult = await connection.execute(checkStaffQuery);
-    
-    if (staffResult.rows[0][0] === 0) {
-      // Get next user ID
-      const getMaxIdQuery = `SELECT NVL(MAX(USER_ID), 0) as maxId FROM ZAINSUPPORTUSERS`;
-      const maxIdResult = await connection.execute(getMaxIdQuery);
-      const nextUserId = (maxIdResult.rows[0][0] || 0) + 1;
-      
-      // Create staff user
-      const staffPasswordHash = await bcrypt.hash('staff123', 10);
-      const insertStaffQuery = `
-        INSERT INTO ZAINSUPPORTUSERS (USER_ID, USERNAME, PASSWORD, ROLE, ACTIVE)
-        VALUES (:userId, 'staff', :staffPassword, 'staff', 1)
-      `;
-      await connection.execute(insertStaffQuery, { 
-        userId: nextUserId,
-        staffPassword: staffPasswordHash 
-      }, { autoCommit: true });
-      console.log('[' + new Date().toISOString() + '] ✓ Staff user created (username: staff, password: staff123)');
-    } else {
-      console.log('[' + new Date().toISOString() + '] Staff user already exists');
+
+    // Check if staff, corporate, and shop users exist
+    const userTypes = [
+      { username: 'staff', password: 'staff123', role: 'staff' },
+      { username: 'corporate', password: 'corporate123', role: 'corporate' },
+      { username: 'shop', password: 'shop123', role: 'shop' }
+    ];
+    for (const userType of userTypes) {
+      const checkUserQuery = `SELECT COUNT(*) as count FROM ZAINSUPPORTUSERS WHERE USERNAME = :username`;
+      const userResult = await connection.execute(checkUserQuery, { username: userType.username });
+      if (userResult.rows[0][0] === 0) {
+        const getMaxIdQuery = `SELECT NVL(MAX(USER_ID), 0) as maxId FROM ZAINSUPPORTUSERS`;
+        const maxIdResult = await connection.execute(getMaxIdQuery);
+        const nextUserId = (maxIdResult.rows[0][0] || 0) + 1;
+        const passwordHash = await bcrypt.hash(userType.password, 10);
+        const insertUserQuery = `
+          INSERT INTO ZAINSUPPORTUSERS (USER_ID, USERNAME, PASSWORD, ROLE, ACTIVE)
+          VALUES (:userId, :username, :password, :role, 1)
+        `;
+        await connection.execute(insertUserQuery, {
+          userId: nextUserId,
+          username: userType.username,
+          password: passwordHash,
+          role: userType.role
+        }, { autoCommit: true });
+        console.log(`[${new Date().toISOString()}] ✓ ${userType.role.charAt(0).toUpperCase() + userType.role.slice(1)} user created (username: ${userType.username}, password: ${userType.password})`);
+      } else {
+        console.log(`[${new Date().toISOString()}] ${userType.role.charAt(0).toUpperCase() + userType.role.slice(1)} user already exists`);
+      }
     }
     
     await connection.close();
@@ -1123,7 +1147,7 @@ async function refreshRestrictedCategories() {
 
 // API Route to get all restricted numbers (admin only)
 app.get('/api/restricted-numbers', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Only admins and staff can view restricted numbers'
@@ -1182,7 +1206,7 @@ app.get('/api/restricted-numbers', requireAuth, async (req, res) => {
 
 // API Route to add a restricted number (admin only)
 app.post('/api/add-restricted-number', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Only admins and staff can add restricted numbers'
@@ -1264,7 +1288,7 @@ app.post('/api/add-restricted-number', requireAuth, async (req, res) => {
 
 // API Route to delete a restricted number (admin only)
 app.post('/api/delete-restricted-number', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Only admins and staff can delete restricted numbers'
@@ -1328,7 +1352,7 @@ app.post('/api/delete-restricted-number', requireAuth, async (req, res) => {
 
 // API Route to get all recipient emails (admin only)
 app.get('/api/recipient-emails', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Only admins and staff can view recipient emails'
@@ -1388,7 +1412,7 @@ app.get('/api/recipient-emails', requireAuth, async (req, res) => {
 
 // API Route to add recipient email (admin and staff)
 app.post('/api/add-recipient-email', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Only admins and staff can add recipient emails'
@@ -1475,7 +1499,7 @@ app.post('/api/add-recipient-email', requireAuth, async (req, res) => {
 
 // API Route to delete recipient email (admin and staff)
 app.post('/api/delete-recipient-email', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Only admins and staff can delete recipient emails'
@@ -1620,7 +1644,7 @@ app.get('/api/questions-setting', requireAuth, async (req, res) => {
 
 // API Route to update questions enabled setting (admin only)
 app.post('/api/update-questions-setting', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Only admins and staff can update questions settings'
@@ -1704,7 +1728,7 @@ app.post('/api/update-questions-setting', requireAuth, async (req, res) => {
 
 // API Route to update email sending setting (admin only)
 app.post('/api/update-email-setting', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Only admins and staff can update email settings'
@@ -1788,7 +1812,7 @@ app.post('/api/update-email-setting', requireAuth, async (req, res) => {
 
 // API Route to get all restricted statuses (admin only)
 app.get('/api/restricted-statuses', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Only admins and staff can view restricted statuses'
@@ -1848,7 +1872,7 @@ app.get('/api/restricted-statuses', requireAuth, async (req, res) => {
 
 // API Route to add restricted status (admin only)
 app.post('/api/add-restricted-status', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Only admins and staff can add restricted statuses'
@@ -1929,7 +1953,7 @@ app.post('/api/add-restricted-status', requireAuth, async (req, res) => {
 
 // API Route to delete restricted status (admin only)
 app.post('/api/delete-restricted-status', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Only admins and staff can delete restricted statuses'
@@ -1993,7 +2017,7 @@ app.post('/api/delete-restricted-status', requireAuth, async (req, res) => {
 
 // API Route to get all restricted categories (admin only)
 app.get('/api/restricted-categories', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Only admins and staff can view restricted categories'
@@ -2053,7 +2077,7 @@ app.get('/api/restricted-categories', requireAuth, async (req, res) => {
 
 // API Route to add restricted category (admin only)
 app.post('/api/add-restricted-category', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
       message: 'Only admins and staff can add restricted categories'
@@ -2135,10 +2159,10 @@ app.post('/api/add-restricted-category', requireAuth, async (req, res) => {
 
 // API Route to delete restricted category (admin only)
 app.post('/api/delete-restricted-category', requireAuth, async (req, res) => {
-  if (!['admin', 'staff'].includes(req.session.user.role)) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(req.session.user.role)) {
     return res.status(403).json({
       success: false,
-      message: 'Only admins and staff can delete restricted categories'
+      message: 'Only admins, staff, corporate, or shop can delete restricted categories'
     });
   }
 
@@ -2340,10 +2364,10 @@ app.post('/api/create-user', requireAuth, async (req, res) => {
     });
   }
 
-  if (!['admin', 'staff'].includes(role.toLowerCase())) {
+  if (!['admin', 'staff', 'corporate', 'shop'].includes(role.toLowerCase())) {
     return res.status(400).json({
       success: false,
-      message: 'Role must be either "admin" or "staff"'
+      message: 'Role must be one of: admin, staff, corporate, shop'
     });
   }
 
@@ -2372,18 +2396,23 @@ app.post('/api/create-user', requireAuth, async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert new user
+    // Insert new user with password expiry (5 min from now, except admin)
+    let passwordExpiresAt = null;
+    if (role.toLowerCase() !== 'admin') {
+      const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      passwordExpiresAt = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+    }
     const insertQuery = `
-      INSERT INTO ZAINSUPPORTUSERS (USER_ID, USERNAME, PASSWORD, ROLE, ACTIVE)
-      VALUES (ZAINSUPPORTUSERS_SEQ.NEXTVAL, :username, :password, :role, 1)
+      INSERT INTO ZAINSUPPORTUSERS (USER_ID, USERNAME, PASSWORD, ROLE, ACTIVE, PASSWORD_EXPIRES_AT)
+      VALUES (ZAINSUPPORTUSERS_SEQ.NEXTVAL, :username, :password, :role, 1, TO_TIMESTAMP(:passwordExpiresAt, 'YYYY-MM-DD HH24:MI:SS'))
     `;
-
     await connection.execute(
       insertQuery,
       {
         username: username.toLowerCase(),
         password: hashedPassword,
-        role: role.toLowerCase()
+        role: role.toLowerCase(),
+        passwordExpiresAt
       },
       { autoCommit: true }
     );
@@ -2423,6 +2452,13 @@ app.post('/api/create-user', requireAuth, async (req, res) => {
 
   } catch (err) {
     console.error('Database error:', err);
+    // ORA-00001: unique constraint violation (duplicate username)
+    if (err.message && err.message.includes('ORA-00001')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username already exists. Please choose a different username.'
+      });
+    }
     res.status(500).json({
       success: false,
       message: 'Database error: ' + err.message
@@ -2599,12 +2635,17 @@ app.post('/api/change-password', requireAuth, async (req, res) => {
     // Hash new password
     const newHashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Update password
-    const updateQuery = `UPDATE ZAINSUPPORTUSERS SET PASSWORD = :password WHERE USER_ID = :userId`;
-    
+    // Set password expiry (5 min from now, except admin)
+    let passwordExpiresAt = null;
+    if (req.session.user.role !== 'admin') {
+      const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      passwordExpiresAt = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+    }
+    const updateQuery = `UPDATE ZAINSUPPORTUSERS SET PASSWORD = :password, PASSWORD_EXPIRES_AT = :passwordExpiresAt WHERE USER_ID = :userId`;
+    const updateQueryTS = `UPDATE ZAINSUPPORTUSERS SET PASSWORD = :password, PASSWORD_EXPIRES_AT = TO_TIMESTAMP(:passwordExpiresAt, 'YYYY-MM-DD HH24:MI:SS') WHERE USER_ID = :userId`;
     await connection.execute(
-      updateQuery,
-      { password: newHashedPassword, userId: req.session.user.id },
+      updateQueryTS,
+      { password: newHashedPassword, passwordExpiresAt, userId: req.session.user.id },
       { autoCommit: true }
     );
 
@@ -2633,6 +2674,70 @@ app.post('/api/change-password', requireAuth, async (req, res) => {
 });
 
 // Diagnostic endpoint to check connection status
+// Reset password by username (admin/system use)
+app.post('/api/reset-password', requireAuth, async (req, res) => {
+  const { username, newPassword } = req.body;
+  if (!username || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: 'Username and new password are required.'
+    });
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: 'New password must be at least 6 characters long.'
+    });
+  }
+  let connection;
+  try {
+    connection = await connectionPool.getConnection();
+    // Check if user exists
+    const userQuery = `SELECT USER_ID FROM ZAINSUPPORTUSERS WHERE USERNAME = :username`;
+    const userResult = await connection.execute(userQuery, { username: username.toLowerCase() });
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found.'
+      });
+    }
+    const userId = userResult.rows[0][0];
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // Get user role
+    const roleQuery = `SELECT ROLE FROM ZAINSUPPORTUSERS WHERE USER_ID = :userId`;
+    const roleResult = await connection.execute(roleQuery, { userId });
+    const userRole = roleResult.rows[0][0];
+    // Set password expiry (5 min from now, except admin)
+    let passwordExpiresAt = null;
+    if (userRole !== 'admin') {
+      const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      passwordExpiresAt = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+    }
+    // Update password and expiry
+    const updateQuery = `UPDATE ZAINSUPPORTUSERS SET PASSWORD = :password, PASSWORD_EXPIRES_AT = :passwordExpiresAt WHERE USER_ID = :userId`;
+    const updateQueryTS2 = `UPDATE ZAINSUPPORTUSERS SET PASSWORD = :password, PASSWORD_EXPIRES_AT = TO_TIMESTAMP(:passwordExpiresAt, 'YYYY-MM-DD HH24:MI:SS') WHERE USER_ID = :userId`;
+    await connection.execute(updateQueryTS2, { password: hashedPassword, passwordExpiresAt, userId }, { autoCommit: true });
+    console.log(`[${new Date().toISOString()}] Password reset for user ${username}`);
+    res.json({
+      success: true,
+      message: `Password for user '${username}' has been reset.`
+    });
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Database error: ' + err.message
+    });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (err) {
+        console.error('Error closing connection:', err);
+      }
+    }
+  }
+});
 app.get('/api/health', requireAuth, async (req, res) => {
   try {
     if (!connectionPool) {
@@ -5057,24 +5162,36 @@ app.get('/api/dashboard-stats', requireAuth, async (req, res) => {
   try {
     connection = await connectionPool.getConnection();
 
+
     const stats = {
-      totalStaff: 0,
-      totalAdmins: 0,
-      totalUpdatedNumbers: 0,
-      totalUpdatedSims: 0,
-      totalFailedNumbers: 0,
-      totalFailedSims: 0
+        totalShopStaffs: 0,
+        totalCorporateStaffs: 0,
+        totalAdmins: 0,
+        totalUpdatedNumbers: 0,
+        totalUpdatedSims: 0,
+        totalFailedNumbers: 0,
+        totalFailedSims: 0
     };
 
-    // Get total staff count (only staff role, excluding admins)
+    // Get total shop staff count (role = 'shop')
     try {
-      const staffQuery = `SELECT COUNT(*) as cnt FROM ZAINSUPPORTUSERS WHERE ACTIVE = 1 AND ROLE = 'staff'`;
-      const staffResult = await connection.execute(staffQuery);
-      stats.totalStaff = staffResult.rows[0][0];
+      const shopQuery = `SELECT COUNT(*) as cnt FROM ZAINSUPPORTUSERS WHERE ACTIVE = 1 AND ROLE = 'shop'`;
+      const shopResult = await connection.execute(shopQuery);
+      stats.totalShopStaffs = shopResult.rows[0][0];
     } catch (e) {
-      console.error('Error getting staff count:', e.message);
-      stats.totalStaff = 0;
+      console.error('Error getting shop staff count:', e.message);
+      stats.totalShopStaffs = 0;
     }
+
+      // Get total corporate staff count (role = 'corporate')
+      try {
+        const corpQuery = `SELECT COUNT(*) as cnt FROM ZAINSUPPORTUSERS WHERE ACTIVE = 1 AND ROLE = 'corporate'`;
+        const corpResult = await connection.execute(corpQuery);
+        stats.totalCorporateStaffs = corpResult.rows[0][0];
+      } catch (e) {
+        console.error('Error getting corporate staff count:', e.message);
+        stats.totalCorporateStaffs = 0;
+      }
 
     // Get total admin count
     try {

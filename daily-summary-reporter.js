@@ -21,6 +21,8 @@ const emailConfig = {
 // Initialize email transporter
 const transporter = nodemailer.createTransport(emailConfig);
 
+
+const cron = require('node-cron');
 // Initialize Oracle connection pool
 let connectionPool;
 
@@ -476,17 +478,14 @@ async function runReporter() {
  * Schedule reporter to run every 5 minutes
  */
 function scheduleReporter() {
-  const INTERVAL = 5 * 60 * 1000; // 5 minutes in milliseconds
+  console.log(`[${new Date().toISOString()}] Scheduling daily summary reporter to run every day at 10:00 PM...`);
 
-  console.log(`[${new Date().toISOString()}] Scheduling daily summary reporter to run every 5 minutes...`);
-
-  // Run immediately on start
-  runReporter();
-
-  // Then schedule to run every 5 minutes
-  setInterval(() => {
+  // Schedule to run at 10:00 PM every day
+  cron.schedule('0 22 * * *', () => {
     runReporter();
-  }, INTERVAL);
+  }, {
+    timezone: 'Asia/Riyadh' // Set to your local timezone if needed
+  });
 }
 
 /**
@@ -502,7 +501,7 @@ async function start() {
     scheduleReporter();
 
     console.log(`[${new Date().toISOString()}] ✓ Daily Summary Reporter Service is running`);
-    console.log(`[${new Date().toISOString()}] Reports will be sent every 5 minutes`);
+    console.log(`[${new Date().toISOString()}] Reports will be sent every day at 10:00 PM`);
   } catch (err) {
     console.error(`[${new Date().toISOString()}] ✗ Failed to start Daily Summary Reporter:`, err.message);
     process.exit(1);

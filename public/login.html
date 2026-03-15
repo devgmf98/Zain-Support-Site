@@ -322,19 +322,41 @@
                     body: JSON.stringify({ username, password })
                 });
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    showAlert('Login successful! Redirecting...', 'success');
-                    setTimeout(() => {
-                        window.location.href = '/';
-                    }, 1000);
-                } else {
+                let data;
+                if (!response.ok) {
+                    // Try to parse error message as JSON, fallback to text
+                    try {
+                        data = await response.json();
+                    } catch (err) {
+                        const text = await response.text();
+                        showAlert(text || 'Login failed. Please try again.', 'error');
+                        loginBtn.disabled = false;
+                        loginBtn.innerHTML = originalText;
+                        passwordInput.value = '';
+                        return;
+                    }
                     showAlert(data.message || 'Login failed. Please try again.', 'error');
                     loginBtn.disabled = false;
                     loginBtn.innerHTML = originalText;
                     passwordInput.value = '';
+                    return;
+                } else {
+                    try {
+                        data = await response.json();
+                    } catch (err) {
+                        const text = await response.text();
+                        showAlert('Invalid server response: ' + text, 'error');
+                        loginBtn.disabled = false;
+                        loginBtn.innerHTML = originalText;
+                        passwordInput.value = '';
+                        return;
+                    }
                 }
+
+                showAlert('Login successful! Redirecting...', 'success');
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
             } catch (error) {
                 showAlert('Network error: ' + error.message, 'error');
                 loginBtn.disabled = false;

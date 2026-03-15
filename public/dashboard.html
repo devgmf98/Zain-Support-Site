@@ -436,9 +436,14 @@
         <!-- Statistics Cards -->
         <div class="stats-grid">
             <div class="stat-card users">
-                <div class="stat-label">Total Staff</div>
-                <div class="stat-value" id="totalStaff">-</div>
-                <div class="stat-change">Active users</div>
+                <div class="stat-label">Total Shop Staffs</div>
+                <div class="stat-value" id="totalShopStaffs">-</div>
+                <div class="stat-change">Active shop users</div>
+            </div>
+            <div class="stat-card users">
+                <div class="stat-label">Total Corporate Staffs</div>
+                <div class="stat-value" id="totalCorporateStaffs">-</div>
+                <div class="stat-change">Active corporate users</div>
             </div>
             <div class="stat-card admins">
                 <div class="stat-label">Total Admins</div>
@@ -558,7 +563,17 @@
             try {
                 // Check if user is logged in and is admin
                 const userResponse = await fetch('/api/current-user');
-                const userData = await userResponse.json();
+                let userData;
+                if (!userResponse.ok) {
+                    const text = await userResponse.text();
+                    throw new Error('Auth error: ' + text);
+                }
+                try {
+                    userData = await userResponse.json();
+                } catch (err) {
+                    const text = await userResponse.text();
+                    throw new Error('Invalid JSON: ' + text);
+                }
 
                 if (!userData.user || userData.user.role !== 'admin') {
                     window.location.href = '/';
@@ -585,14 +600,25 @@
         async function loadStatistics() {
             try {
                 const response = await fetch('/api/dashboard-stats');
-                const result = await response.json();
+                let result;
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error('Stats error: ' + text);
+                }
+                try {
+                    result = await response.json();
+                } catch (err) {
+                    const text = await response.text();
+                    throw new Error('Invalid JSON: ' + text);
+                }
 
                 if (!result.success) {
                     throw new Error(result.message || 'Failed to load statistics');
                 }
 
                 const stats = result.data;
-                document.getElementById('totalStaff').textContent = stats.totalStaff;
+                document.getElementById('totalShopStaffs').textContent = stats.totalShopStaffs;
+                document.getElementById('totalCorporateStaffs').textContent = stats.totalCorporateStaffs;
                 document.getElementById('totalAdmins').textContent = stats.totalAdmins;
                 document.getElementById('totalUpdatedNumbers').textContent = stats.totalUpdatedNumbers;
                 document.getElementById('totalUpdatedSims').textContent = stats.totalUpdatedSims;

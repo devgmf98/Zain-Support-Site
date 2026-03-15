@@ -343,18 +343,13 @@
         }
 
         .alert {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 16px;
+            padding: 12px 14px;
             border-radius: 6px;
+            margin-bottom: 20px;
             font-size: 13px;
             display: none;
-            animation: slideInRight 0.3s ease-out;
+            animation: slideIn 0.3s ease-out;
             border-left: 3px solid;
-            z-index: 1000;
-            max-width: 350px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
         }
 
         .alert.show {
@@ -387,7 +382,7 @@
             border-radius: 6px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
             display: none;
-            animation: slideInRight 0.3s ease-out;
+            animation: slideInRightTop 0.3s ease-out;
             z-index: 1000;
             max-width: 350px;
             border-left: 3px solid;
@@ -410,14 +405,14 @@
             border-left-color: #f5c6cb;
         }
 
-        @keyframes slideInRight {
+        @keyframes slideInRightTop {
             from {
                 opacity: 0;
-                transform: translateX(100px);
+                transform: translateX(100px) translateY(-40px);
             }
             to {
                 opacity: 1;
-                transform: translateX(0);
+                transform: translateX(0) translateY(0);
             }
         }
 
@@ -640,6 +635,10 @@
                         <div onclick="switchTab('settings', 'email-recipients')" style="display: flex; align-items: center; padding: 8px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; gap: 6px; color: #666; border-radius: 4px;">
                             <span style="font-size: 14px;">📧</span>
                             <span>Email Recipients</span>
+                        </div>
+                        <div onclick="switchTab('settings', 'reset-staff-password')" style="display: flex; align-items: center; padding: 8px 10px; cursor: pointer; font-size: 12px; transition: all 0.2s; gap: 6px; color: #666; border-radius: 4px;">
+                            <span style="font-size: 14px;">🔑</span>
+                            <span>Reset Staff Password</span>
                         </div>
                     </div>
                 </div>
@@ -923,6 +922,32 @@
 
             <!-- Settings Section (Admin Only) -->
             <div id="settingsSection" class="form-section">
+                                <!-- Reset Staff Password Section -->
+                                <div id="settingsResetStaffPasswordSection" style="display: none; max-width: 420px; margin: 0 auto 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(102,126,234,0.10); padding: 36px 32px 32px 32px; border: 1px solid #e0e0e0;">
+                                    <div class="header" style="margin-bottom: 18px;">
+                                        <h2 style="font-size: 24px; margin-bottom: 6px;">🔑 Reset Password</h2>
+                                        <p style="font-size: 14px; color: #666;">Admins can reset the password for any user. Enter the username and new password below.</p>
+                                    </div>
+                                    <div id="resetStaffPasswordAlert" class="alert"></div>
+                                    <form id="resetStaffPasswordForm" autocomplete="off">
+                                        <div class="form-group">
+                                            <label for="resetPasswordUsername">Username <span style="color: #e74c3c;">*</span></label>
+                                            <input type="text" id="resetPasswordUsername" required placeholder="Enter username" autocomplete="off">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="resetStaffNewPassword">New Password <span style="color: #e74c3c;">*</span></label>
+                                            <input type="password" id="resetStaffNewPassword" required placeholder="Enter new password" autocomplete="new-password">
+                                        </div>
+                                        <div class="button-group">
+                                            <button type="submit" class="btn-update">Reset Password</button>
+                                            <button type="reset" class="btn-clear" id="resetStaffPasswordClearBtn">Clear</button>
+                                        </div>
+
+                                    </form>
+                                    <div class="info-box" style="margin-top: 24px; background: #f9fafb; border-radius: 6px; padding: 14px 16px; font-size: 13px; color: #555;">
+                                        <strong>ℹ️ Information:</strong> Only admins can reset passwords for users. Enter the username and new password to update. Password must be at least 6 characters.
+                                    </div>
+                                </div>
                 <!-- Restricted Prefix Section -->
                 <div id="settingsRestrictedPrefixSection" style="display: block;">
                     <div class="header">
@@ -1319,29 +1344,6 @@
             });
         }
 
-        // Idle timeout setup - 15 minutes
-        const IDLE_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
-        let idleTimer = null;
-        let lastActivityTime = Date.now();
-
-        function resetIdleTimer() {
-            lastActivityTime = Date.now();
-            clearTimeout(idleTimer);
-            
-            idleTimer = setTimeout(() => {
-                console.log('[Auto-Logout] User idle for 15 minutes. Logging out...');
-                showToast('Session expired due to inactivity. Please log in again.', 'info');
-                logout();
-            }, IDLE_TIMEOUT);
-        }
-
-        function setupIdleTimeoutListeners() {
-            const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
-            events.forEach(event => {
-                document.addEventListener(event, resetIdleTimer, true);
-            });
-        }
-
         // Check authentication on page load
         window.addEventListener('load', async () => {
             try {
@@ -1351,20 +1353,20 @@
                     window.location.href = '/';
                     return;
                 }
-                const data = await response.json();
+                let data;
+                try {
+                    data = await response.json();
+                } catch (err) {
+                    const text = await response.text();
+                    throw new Error('Invalid JSON: ' + text);
+                }
                 if (data.success && data.user) {
                     displayUserInfo(data.user);
                 }
-                
                 // Load restricted categories and statuses on page initialization
-                // This ensures they're available for all operations
                 await loadRestrictedCategories();
                 await loadRestrictedStatuses();
                 await loadRestrictedNumbers();
-
-                // Initialize idle timeout for auto-logout after 15 minutes of inactivity
-                setupIdleTimeoutListeners();
-                resetIdleTimer();
             } catch (error) {
                 console.error('Error checking authentication:', error);
                 window.location.href = '/';
@@ -1416,7 +1418,17 @@
         async function logout() {
             try {
                 const response = await fetch('/api/logout', { method: 'POST' });
-                const data = await response.json();
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error('Logout failed: ' + text);
+                }
+                let data;
+                try {
+                    data = await response.json();
+                } catch (err) {
+                    const text = await response.text();
+                    throw new Error('Invalid JSON: ' + text);
+                }
                 if (data.success) {
                     window.location.href = '/';
                 }
@@ -1451,7 +1463,8 @@
                     'restricted-category': 'settingsRestrictedCategorySection',
                     'email-settings': 'settingsEmailSettingsSection',
                     'questions-settings': 'settingsQuestionsSettingsSection',
-                    'email-recipients': 'settingsEmailRecipientsSection'
+                    'email-recipients': 'settingsEmailRecipientsSection',
+                    'reset-staff-password': 'settingsResetStaffPasswordSection'
                 };
 
                 // Show main settings section
@@ -1467,7 +1480,8 @@
                     'settingsRestrictedCategorySection',
                     'settingsEmailSettingsSection',
                     'settingsQuestionsSettingsSection',
-                    'settingsEmailRecipientsSection'
+                    'settingsEmailRecipientsSection',
+                    'settingsResetStaffPasswordSection'
                 ];
                 settingsSubtabs.forEach(id => {
                     const elem = document.getElementById(id);
@@ -1563,50 +1577,54 @@
                 for (const mobileNumber of numberList) {
                     try {
                         const response = await fetch(`/api/get-mobile-details/${encodeURIComponent(mobileNumber)}`);
-                        const data = await response.json();
-
-                        if (response.ok) {
-                            successCount++;
-                            const isRestrictedCategory = data.data.categoryCode && restrictedCategories.includes(data.data.categoryCode);
-                            const isRestrictedStatus = data.data.status && restrictedStatuses.includes(data.data.status.toUpperCase());
-                            const isRestrictedPrefixMatch = matchesRestrictedPrefix(data.data.mobileNumber);
-                            const hasRestriction = isRestrictedCategory || isRestrictedStatus || isRestrictedPrefixMatch;
-                            
-                            let freeButtonHTML;
-                            if (hasRestriction) {
-                                // Has restriction - only admin can free
-                                if (currentUserRole === 'admin') {
-                                    freeButtonHTML = `<button onclick="freeMobileStatus('${data.data.mobileNumber}', '${data.data.status || 'N/A'}')" style="background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;" title="Free this status">🔓 Free Status</button>`;
-                                } else {
-                                    freeButtonHTML = '<span style="color: #f44336; font-size: 11px; font-weight: 600;">Admin only</span>';
-                                }
-                            } else {
-                                // No restrictions - both admin and staff can free
-                                freeButtonHTML = `<button onclick="freeMobileStatus('${data.data.mobileNumber}', '${data.data.status || 'N/A'}')" style="background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;" title="Free this status">🔓 Free Status</button>`;
-                            }
-                            
-                            tableRows.push(`
-                                <tr style="border-bottom: 1px solid #e0e0e0; transition: background 0.2s; ${hasRestriction && currentUserRole !== 'admin' ? 'background: #fff3cd;' : ''}">
-                                    <td style="padding: 11px 13px; color: #333; font-size: 13px;">${data.data.mobileNumber || 'N/A'}</td>
-                                    <td style="padding: 11px 13px; color: #333; font-size: 13px;">
-                                        <span style="padding: 4px 8px; background: ${data.data.categoryCode ? '#e8f5e9' : '#f5f5f5'}; color: ${data.data.categoryCode ? '#2e7d32' : '#999'}; border-radius: 4px; display: inline-block; font-weight: 500; font-size: 12px;">
-                                            ${data.data.categoryCode || 'N/A'}
-                                        </span>
-                                        ${isRestrictedCategory ? `<span style="margin-left: 6px; padding: 2px 6px; background: #f44336; color: white; border-radius: 3px; font-size: 10px; font-weight: 600;">RESTRICTED</span>` : ''}
-                                    </td>
-                                    <td style="padding: 11px 13px; color: #333; font-size: 13px;">
-                                        <span style="padding: 4px 8px; background: ${isRestrictedStatus ? '#ffebee' : '#f0f4ff'}; color: ${isRestrictedStatus ? '#f44336' : '#667eea'}; border-radius: 4px; display: inline-block; font-weight: 600; font-size: 12px;">${data.data.status || 'N/A'}</span>
-                                        ${isRestrictedStatus ? `<span style="margin-left: 6px; padding: 2px 6px; background: #f44336; color: white; border-radius: 3px; font-size: 10px; font-weight: 600;">RESTRICTED</span>` : ''}
-                                        ${isRestrictedPrefixMatch ? `<span style="margin-left: 6px; padding: 2px 6px; background: #f44336; color: white; border-radius: 3px; font-size: 10px; font-weight: 600;">PREFIX</span>` : ''}
-                                    </td>
-                                    <td style="padding: 11px 13px; text-align: center;">
-                                        ${freeButtonHTML}
-                                    </td>
-                                </tr>
-                            `);
-                        } else {
-                            failedNumbers.push(`${mobileNumber}: ${data.message || 'No record found'}`);
+                        let data;
+                        if (!response.ok) {
+                            const text = await response.text();
+                            failedNumbers.push(`${mobileNumber}: ${text || 'No record found'}`);
+                            continue;
                         }
+                        try {
+                            data = await response.json();
+                        } catch (err) {
+                            const text = await response.text();
+                            failedNumbers.push(`${mobileNumber}: Invalid JSON: ${text}`);
+                            continue;
+                        }
+
+                        successCount++;
+                        const isRestrictedCategory = data.data.categoryCode && restrictedCategories.includes(data.data.categoryCode);
+                        const isRestrictedStatus = data.data.status && restrictedStatuses.includes(data.data.status.toUpperCase());
+                        const isRestrictedPrefixMatch = matchesRestrictedPrefix(data.data.mobileNumber);
+                        const hasRestriction = isRestrictedCategory || isRestrictedStatus || isRestrictedPrefixMatch;
+                        let freeButtonHTML;
+                        if (hasRestriction) {
+                            if (currentUserRole === 'admin') {
+                                freeButtonHTML = `<button onclick="freeMobileStatus('${data.data.mobileNumber}', '${data.data.status || 'N/A'}')" style="background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;" title="Free this status">🔓 Free Status</button>`;
+                            } else {
+                                freeButtonHTML = '<span style="color: #f44336; font-size: 11px; font-weight: 600;">Admin only</span>';
+                            }
+                        } else {
+                            freeButtonHTML = `<button onclick="freeMobileStatus('${data.data.mobileNumber}', '${data.data.status || 'N/A'}')" style="background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;" title="Free this status">🔓 Free Status</button>`;
+                        }
+                        tableRows.push(`
+                            <tr style="border-bottom: 1px solid #e0e0e0; transition: background 0.2s; ${hasRestriction && currentUserRole !== 'admin' ? 'background: #fff3cd;' : ''}">
+                                <td style="padding: 11px 13px; color: #333; font-size: 13px;">${data.data.mobileNumber || 'N/A'}</td>
+                                <td style="padding: 11px 13px; color: #333; font-size: 13px;">
+                                    <span style="padding: 4px 8px; background: ${data.data.categoryCode ? '#e8f5e9' : '#f5f5f5'}; color: ${data.data.categoryCode ? '#2e7d32' : '#999'}; border-radius: 4px; display: inline-block; font-weight: 500; font-size: 12px;">
+                                        ${data.data.categoryCode || 'N/A'}
+                                    </span>
+                                    ${isRestrictedCategory ? `<span style="margin-left: 6px; padding: 2px 6px; background: #f44336; color: white; border-radius: 3px; font-size: 10px; font-weight: 600;">RESTRICTED</span>` : ''}
+                                </td>
+                                <td style="padding: 11px 13px; color: #333; font-size: 13px;">
+                                    <span style="padding: 4px 8px; background: ${isRestrictedStatus ? '#ffebee' : '#f0f4ff'}; color: ${isRestrictedStatus ? '#f44336' : '#667eea'}; border-radius: 4px; display: inline-block; font-weight: 600; font-size: 12px;">${data.data.status || 'N/A'}</span>
+                                    ${isRestrictedStatus ? `<span style="margin-left: 6px; padding: 2px 6px; background: #f44336; color: white; border-radius: 3px; font-size: 10px; font-weight: 600;">RESTRICTED</span>` : ''}
+                                    ${isRestrictedPrefixMatch ? `<span style="margin-left: 6px; padding: 2px 6px; background: #f44336; color: white; border-radius: 3px; font-size: 10px; font-weight: 600;">PREFIX</span>` : ''}
+                                </td>
+                                <td style="padding: 11px 13px; text-align: center;">
+                                    ${freeButtonHTML}
+                                </td>
+                            </tr>
+                        `);
                     } catch (error) {
                         failedNumbers.push(`${mobileNumber}: Error - ${error.message}`);
                     }
@@ -1631,7 +1649,6 @@
                             </tbody>
                         </table>
                     `;
-                    
                     let fullHTML = tableHTML;
                     if (failedNumbers.length > 0) {
                         fullHTML += `<div style="margin-top: 20px; padding: 12px 14px; background: #fffbf0; border: 1px solid #f5d76e; border-radius: 6px; color: #8b6914; font-size: 13px;">
@@ -1641,7 +1658,6 @@
                             </ul>
                         </div>`;
                     }
-                    
                     document.getElementById('detailsBox').innerHTML = fullHTML;
                     document.getElementById('detailsBox').style.display = 'block';
                     showMessage(`Retrieved details for ${successCount} of ${numberList.length} number(s)`, 'success', 'viewMessageAlert');
@@ -1791,6 +1807,43 @@
                 showToast('Error: ' + error.message, 'error');
             }
         });
+
+        // ============ RESET STAFF PASSWORD SECTION ============
+        const resetStaffPasswordForm = document.getElementById('resetStaffPasswordForm');
+        if (resetStaffPasswordForm) {
+            resetStaffPasswordForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('resetPasswordUsername').value.trim();
+                const newPassword = document.getElementById('resetStaffNewPassword').value.trim();
+                const alertDiv = document.getElementById('resetStaffPasswordAlert');
+                alertDiv.className = 'alert';
+                alertDiv.textContent = '';
+                if (!username || !newPassword) {
+                    showToast('Please fill in all required fields', 'error');
+                    return;
+                }
+                if (newPassword.length < 6) {
+                    showToast('Password must be at least 6 characters', 'error');
+                    return;
+                }
+                try {
+                    const response = await fetch('/api/reset-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, newPassword })
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        showToast(data.message || 'Password reset successfully', 'success');
+                        resetStaffPasswordForm.reset();
+                    } else {
+                        showToast(data.message || 'Failed to reset password', 'error');
+                    }
+                } catch (error) {
+                    showToast('Error: ' + error.message, 'error');
+                }
+            });
+        }
 
         // ============ SUPPORT SECTION ============
         const askQuestionForm = document.getElementById('askQuestionForm');
