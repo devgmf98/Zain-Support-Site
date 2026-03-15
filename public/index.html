@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zain Support Site</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
     <style>
         * {
             margin: 0;
@@ -219,8 +220,9 @@
         .main-content {
             margin-left: 240px;
             width: calc(100% - 240px);
-            padding: 32px;
+            padding: 15px;
             overflow-y: auto;
+            overflow-x: hidden;
             background: #f9fafb;
             scrollbar-width: none;
             -ms-overflow-style: none;
@@ -236,11 +238,14 @@
             box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
             padding: 40px;
             max-width: 1500px;
+            overflow-x: hidden;
         }
 
         .header {
             text-align: center;
             margin-bottom: 32px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #f0f0f0;
         }
 
         .header h2 {
@@ -472,6 +477,11 @@
 
         .form-section {
             display: none;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+            padding: 32px;
+            margin-bottom: 30px;
         }
 
         .form-section.active {
@@ -668,10 +678,310 @@
     <!-- Main Content -->
     <div class="main-content">
         <div class="container">
+            <div id="adminSections">
             <!-- Dashboard Section -->
-            <div id="dashboardSection" class="form-section" style="padding: 0; border: none; box-shadow: none; background: transparent;">
-                <iframe id="dashboardFrame" src="dashboard.html" style="width: 100%; height: calc(100vh - 120px); border: none; padding: 0; margin: 0;"></iframe>
+            <div id="dashboardSection" class="form-section" style="margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px; overflow: hidden;">
+                <h4 style="color: #0084d4; margin-bottom: 20px;">📊 Dashboard</h4>
+                
+                <!-- Statistics Cards -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 30px;">
+                    <div style="background: #f0f8ff; border-left: 4px solid #27ae60; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 11px; color: #999; font-weight: 600; text-transform: uppercase; margin-bottom: 8px;">Total Shop Staffs</div>
+                        <div style="font-size: 24px; color: #1a1a1a; font-weight: 700;" id="dashTotalShopStaffs">-</div>
+                    </div>
+                    <div style="background: #f0f8ff; border-left: 4px solid #27ae60; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 11px; color: #999; font-weight: 600; text-transform: uppercase; margin-bottom: 8px;">Total Corporate Staffs</div>
+                        <div style="font-size: 24px; color: #1a1a1a; font-weight: 700;" id="dashTotalCorporateStaffs">-</div>
+                    </div>
+                    <div style="background: #fffbf0; border-left: 4px solid #f39c12; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 11px; color: #999; font-weight: 600; text-transform: uppercase; margin-bottom: 8px;">Total Admins</div>
+                        <div style="font-size: 24px; color: #1a1a1a; font-weight: 700;" id="dashTotalAdmins">-</div>
+                    </div>
+                    <div style="background: #f0f4ff; border-left: 4px solid #0084d4; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 11px; color: #999; font-weight: 600; text-transform: uppercase; margin-bottom: 8px;">Updated Numbers</div>
+                        <div style="font-size: 24px; color: #1a1a1a; font-weight: 700;" id="dashTotalUpdatedNumbers">-</div>
+                    </div>
+                    <div style="background: #f0f4ff; border-left: 4px solid #0084d4; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 11px; color: #999; font-weight: 600; text-transform: uppercase; margin-bottom: 8px;">Updated SIMs</div>
+                        <div style="font-size: 24px; color: #1a1a1a; font-weight: 700;" id="dashTotalUpdatedSims">-</div>
+                    </div>
+                    <div style="background: #fee; border-left: 4px solid #e74c3c; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 11px; color: #999; font-weight: 600; text-transform: uppercase; margin-bottom: 8px;">Failed Numbers</div>
+                        <div style="font-size: 24px; color: #1a1a1a; font-weight: 700;" id="dashTotalFailedNumbers">-</div>
+                    </div>
+                    <div style="background: #fee; border-left: 4px solid #e74c3c; padding: 15px; border-radius: 8px;">
+                        <div style="font-size: 11px; color: #999; font-weight: 600; text-transform: uppercase; margin-bottom: 8px;">Failed SIMs</div>
+                        <div style="font-size: 24px; color: #1a1a1a; font-weight: 700;" id="dashTotalFailedSims">-</div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Resent Updated Mobile Numbers -->
+            <div id="adminOnlyResentMobile" style="margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
+                <h4 style="color: #0084d4; margin-bottom: 10px;">📱 Resent Updated Mobile Numbers</h4>
+                <div id="resentMobileTable" style="overflow-x: auto;"></div>
+                <div id="resentMobilePagination" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e0e0e0; text-align: end;"></div>
+            </div>
+
+            <!-- Resent Updated Serials -->
+            <div id="adminOnlyResentSerials" style="margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
+                <h4 style="color: #0084d4; margin-bottom: 10px;">💳 Resent Updated Serials</h4>
+                <div id="resentSerialTable" style="overflow-x: auto;"></div>
+                <div id="resentSerialPagination" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e0e0e0; text-align: end;"></div>
+            </div>
+
+            <!-- Daily Mobile Number Updates Card -->
+            <div id="adminOnlyDailyMobile" style="margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
+                <h4 style="color: #0084d4; margin-bottom: 10px;">📱 Daily Mobile Number Updates</h4>
+                <div style="overflow-x: auto;">
+                    <canvas id="numbersChart" style="width:100%;max-width:100%;height:300px;"></canvas>
+                </div>
+            </div>
+
+            <!-- Daily SIM Updates Card -->
+            <div id="adminOnlyDailySim" style="margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
+                <h4 style="color: #0084d4; margin-bottom: 10px;">🔄 Daily SIM Updates</h4>
+                <div style="overflow-x: auto;">
+                    <canvas id="simsChart" style="width:100%;max-width:100%;height:300px;"></canvas>
+                </div>
+            </div>
+
+            <!-- Report Generator -->
+            <div id="adminOnlyReportGenerator" style="margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
+                <h4 style="color: #0084d4; margin-bottom: 10px;">📋 Report Generator</h4>
+                <p style="color: #666; margin-bottom: 20px;">Generate reports for mobile numbers, SIM cards, and failed updates</p>
+
+                <div id="reportError" style="margin-bottom: 15px;"></div>
+
+                <!-- Staff Report Section -->
+                <div style="background: #f9fafb; border-radius: 8px; border-left: 4px solid #0084d4; padding: 20px; margin-bottom: 30px;">
+                    <h4 style="color: #0084d4; margin-bottom: 15px; margin-top: 0;">👥 Staff Report Generator</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 15px;">
+                        <div>
+                            <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">Staff Type</label>
+                            <select id="staffType" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;">
+                                <option value="">-- Select Staff Type --</option>
+                                <option value="shop">Shop Staffs</option>
+                                <option value="corporate">Corporate Staffs</option>
+                                <option value="admin">Admins</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">From Date</label>
+                            <input type="date" id="staffStartDate" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;">
+                        </div>
+                        <div>
+                            <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">To Date</label>
+                            <input type="date" id="staffEndDate" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;">
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            <button id="generateStaffReportBtn" style="flex: 1; padding: 10px 20px; background: #0084d4; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
+                                Generate Staff Report
+                            </button>
+                        </div>
+                    </div>
+                    <div id="staffReportLoading" style="display: none; text-align: center; padding: 15px;">
+                        <div style="display: inline-block; width: 20px; height: 20px; border: 3px solid #f3f3f3; border-top: 3px solid #0084d4; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <p style="margin-top: 8px; color: #666; font-size: 12px;">Generating report...</p>
+                    </div>
+                    <div id="staffReportContainer" style="display: none; margin-top: 15px;">
+                        <div id="staffReportTable" style="overflow-x: auto;"></div>
+                        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e0e0e0; text-align: end;">
+                            <button id="downloadStaffReportBtn" style="padding: 8px 16px; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 12px; display: none;">
+                                ⬇ Download Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <h4 style="color: #0084d4; margin-bottom: 15px;">📱 Generate Mobile Number And SIM Reports</h4>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">Start Date</label>
+                        <input type="date" id="reportStartDate" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-weight: 600; margin-bottom: 8px; color: #333;">End Date</label>
+                        <input type="date" id="reportEndDate" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px;">
+                    </div>
+                    <div style="display: flex; align-items: flex-end; gap: 10px;">
+                        <button id="generateReportBtn" style="flex: 1; padding: 10px 20px; background: #0084d4; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px;">
+                            Generate Report
+                        </button>
+                        <button id="downloadReportBtn" style="flex: 1; padding: 10px 20px; background: #27ae60; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; display: none;">
+                            ⬇ Download Excel
+                        </button>
+                    </div>
+                </div>
+
+                <div id="reportLoadingSpinner" style="display: none; text-align: center; padding: 20px;">
+                    <div style="display: inline-block; width: 24px; height: 24px; border: 3px solid #f3f3f3; border-top: 3px solid #0084d4; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <p style="margin-top: 10px; color: #666;">Generating report...</p>
+                </div>
+
+                <div id="reportPreviewContainer" style="display: none; margin-top: 20px;">
+                    <h3 style="color: #1a1a1a; margin-bottom: 15px;">Preview (First 10 Records)</h3>
+                    
+                    <div id="numbersPreview" style="margin-bottom: 30px;">
+                        <h4 style="color: #0084d4; margin-bottom: 10px;">📱 Mobile Numbers Logs</h4>
+                        <div id="numbersPreviewTable" style="overflow-x: auto;"></div>
+                    </div>
+
+                    <div id="simsPreview" style="margin-bottom: 30px;">
+                        <h4 style="color: #0084d4; margin-bottom: 10px;">💳 SIM Cards Logs</h4>
+                        <div id="simsPreviewTable" style="overflow-x: auto;"></div>
+                    </div>
+
+                    <div id="failedNumbersPreview" style="margin-bottom: 30px;">
+                        <h4 style="color: #e74c3c; margin-bottom: 10px;">❌ Failed Mobile Logs</h4>
+                        <div id="failedNumbersPreviewTable" style="overflow-x: auto;"></div>
+                    </div>
+
+                    <div id="failedSimsPreview" style="margin-bottom: 30px;">
+                        <h4 style="color: #e74c3c; margin-bottom: 10px;">❌ Failed SIM Logs</h4>
+                        <div id="failedSimsPreviewTable" style="overflow-x: auto;"></div>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <script>
+            // Async load functions for real data from API
+            async function loadRecentMobiles() {
+                try {
+                    const response = await fetch('/api/recent-mobiles');
+                    const json = await response.json();
+                    if (json.success && json.data && json.data.length > 0) {
+                        renderPaginatedTable(json.data, ['MOBILE_NUMBER', 'STATUS_BEFORE', 'STATUS_AFTER', 'USERNAME', 'UPDATE_TIME'], 'resentMobileTable', 'resentMobilePagination');
+                    } else {
+                        document.getElementById('resentMobileTable').innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">No recent mobile updates found</p>';
+                    }
+                } catch (error) {
+                    console.error('Error loading recent mobiles:', error);
+                    document.getElementById('resentMobileTable').innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Error loading mobile updates</p>';
+                }
+            }
+
+            async function loadRecentSims() {
+                try {
+                    const response = await fetch('/api/recent-sims');
+                    const json = await response.json();
+                    if (json.success && json.data && json.data.length > 0) {
+                        renderPaginatedTable(json.data, ['SIM_IDENTIFIER', 'STATUS_BEFORE', 'STATUS_AFTER', 'USERNAME', 'UPDATE_TIME'], 'resentSerialTable', 'resentSerialPagination');
+                    } else {
+                        document.getElementById('resentSerialTable').innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">No recent SIM updates found</p>';
+                    }
+                } catch (error) {
+                    console.error('Error loading recent SIMs:', error);
+                    document.getElementById('resentSerialTable').innerHTML = '<p style="padding: 20px; text-align: center; color: #999;">Error loading SIM updates</p>';
+                }
+            }
+
+            function createTable(data, columns) {
+                let html = '<table style="width: 100%; border-collapse: collapse; font-size: 12px;"><thead><tr style="background: #f5f5f5;">';
+                columns.forEach(col => {
+                    html += `<th style="padding: 10px; text-align: left; border: 1px solid #ddd; font-weight: 600;">${col}</th>`;
+                });
+                html += '</tr></thead><tbody>';
+                data.forEach(row => {
+                    html += '<tr>';
+                    columns.forEach(col => {
+                        let value = row[col] || '-';
+                        html += `<td style="padding: 8px; border: 1px solid #ddd;">${value}</td>`;
+                    });
+                    html += '</tr>';
+                });
+                html += '</tbody></table>';
+                return html;
+            }
+
+            function renderPaginatedTable(data, columns, tableId, paginationId) {
+                const pageSize = 10;
+                let currentPage = 1;
+                function renderPage(page) {
+                    const start = (page - 1) * pageSize;
+                    const end = start + pageSize;
+                    document.getElementById(tableId).innerHTML = createTable(data.slice(start, end), columns);
+                    renderPagination(page);
+                }
+                function renderPagination(page) {
+                    const totalPages = Math.ceil(data.length / pageSize);
+                    let html = '';
+                    
+                    // Previous button
+                    html += `<button onclick="window.${paginationId}_goto(${Math.max(1, page - 1)})" style="margin: 0 1px; padding: 4px 8px; border-radius: 3px; border: none; background: #f5f5f5; color: #0084d4; font-weight: 600; cursor: pointer; font-size: 11px;" ${page === 1 ? 'disabled' : ''}>&laquo;</button>`;
+                    
+                    // Calculate which pages to show
+                    const pagesToShow = [];
+                    const maxPagesToShow = 7;
+                    const halfShow = Math.floor(maxPagesToShow / 2);
+                    
+                    // Always show first page
+                    pagesToShow.push(1);
+                    
+                    let startPage = Math.max(2, page - halfShow);
+                    let endPage = Math.min(totalPages - 1, page + halfShow);
+                    
+                    // Adjust ranges if near start or end
+                    if (page <= halfShow + 1) {
+                        endPage = Math.min(totalPages - 1, maxPagesToShow - 1);
+                    }
+                    if (page >= totalPages - halfShow) {
+                        startPage = Math.max(2, totalPages - maxPagesToShow + 2);
+                    }
+                    
+                    // Add ellipsis if needed
+                    if (startPage > 2) {
+                        pagesToShow.push('...');
+                    }
+                    
+                    // Add middle pages
+                    for (let i = startPage; i <= endPage; i++) {
+                        pagesToShow.push(i);
+                    }
+                    
+                    // Add ellipsis if needed
+                    if (endPage < totalPages - 1) {
+                        pagesToShow.push('...');
+                    }
+                    
+                    // Always show last page if there's more than one page
+                    if (totalPages > 1) {
+                        pagesToShow.push(totalPages);
+                    }
+                    
+                    // Render page buttons
+                    pagesToShow.forEach(p => {
+                        if (p === '...') {
+                            html += `<span style="margin: 0 1px; padding: 4px 8px; color: #999; font-size: 11px;">...</span>`;
+                        } else {
+                            html += `<button onclick="window.${paginationId}_goto(${p})" style="margin: 0 1px; padding: 4px 8px; border-radius: 3px; border: none; background: ${p === page ? '#0084d4' : '#f5f5f5'}; color: ${p === page ? 'white' : '#0084d4'}; font-weight: 600; cursor: pointer; font-size: 11px;">${p}</button>`;
+                        }
+                    });
+                    
+                    // Next button
+                    html += `<button onclick="window.${paginationId}_goto(${Math.min(totalPages, page + 1)})" style="margin: 0 1px; padding: 4px 8px; border-radius: 3px; border: none; background: #f5f5f5; color: #0084d4; font-weight: 600; cursor: pointer; font-size: 11px;" ${page === totalPages ? 'disabled' : ''}>&raquo;</button>`;
+                    
+                    document.getElementById(paginationId).innerHTML = html;
+                }
+                window[paginationId + '_goto'] = function(page) {
+                    currentPage = page;
+                    renderPage(page);
+                };
+                renderPage(currentPage);
+            }
+
+            // Load real data from API on page load
+            loadRecentMobiles();
+            loadRecentSims();
+            // Hide admin sections if not admin
+            var isAdmin = window.isAdmin !== undefined ? window.isAdmin : true;
+            if (!isAdmin) {
+                var adminSections = document.getElementById('adminSections');
+                if (adminSections) adminSections.style.display = 'none';
+            }
+            </script>
 
             <!-- View NumberDetails Section -->
             <div id="viewSection" class="form-section">
@@ -1050,7 +1360,7 @@
                             </div>
 
                             <div class="button-group">
-                                <button type="submit" class="btn-update">Add Status</button>
+                        ="submit" class="btn-update">Add Status</button>
                                 <button type="reset" class="btn-clear">Clear</button>
                             </div>
 
@@ -1308,6 +1618,8 @@
         let restrictedCategories = []; // Store restricted categories list
         let restrictedStatuses = []; // Store restricted statuses list
         let restrictedPrefixes = []; // Store restricted prefixes list
+        let numbersChart = null;
+        let simsChart = null;
         
         const statusForm = document.getElementById('statusForm');
         const bulkStatusForm = document.getElementById('bulkStatusForm');
@@ -1325,6 +1637,229 @@
                 "'": '&#039;'
             };
             return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        // Load dashboard statistics
+        async function loadDashboardStats() {
+            try {
+                const response = await fetch('/api/dashboard-stats');
+                if (!response.ok) {
+                    const text = await response.text();
+                    throw new Error('Stats error: ' + text);
+                }
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to load statistics');
+                }
+
+                const stats = result.data || {};
+                document.getElementById('dashTotalShopStaffs').textContent = stats.totalShopStaffs || '0';
+                document.getElementById('dashTotalCorporateStaffs').textContent = stats.totalCorporateStaffs || '0';
+                document.getElementById('dashTotalAdmins').textContent = stats.totalAdmins || '0';
+                document.getElementById('dashTotalUpdatedNumbers').textContent = stats.totalUpdatedNumbers || '0';
+                document.getElementById('dashTotalUpdatedSims').textContent = stats.totalUpdatedSims || '0';
+                document.getElementById('dashTotalFailedNumbers').textContent = stats.totalFailedNumbers || '0';
+                document.getElementById('dashTotalFailedSims').textContent = stats.totalFailedSims || '0';
+            } catch (error) {
+                console.error('Error loading dashboard statistics:', error);
+                // Set default values on error
+                document.getElementById('dashTotalShopStaffs').textContent = '0';
+                document.getElementById('dashTotalCorporateStaffs').textContent = '0';
+                document.getElementById('dashTotalAdmins').textContent = '0';
+                document.getElementById('dashTotalUpdatedNumbers').textContent = '0';
+                document.getElementById('dashTotalUpdatedSims').textContent = '0';
+                document.getElementById('dashTotalFailedNumbers').textContent = '0';
+                document.getElementById('dashTotalFailedSims').textContent = '0';
+            }
+        }
+
+        // Load chart data
+        async function loadChartData() {
+            try {
+                const response = await fetch('/api/dashboard-charts');
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.message || 'Failed to load chart data');
+                }
+
+                const chartData = result.data;
+                renderNumbersChart(chartData);
+                renderSimsChart(chartData);
+            } catch (error) {
+                console.error('Error loading chart data:', error);
+            }
+        }
+
+        // Render numbers chart
+        function renderNumbersChart(data) {
+            const ctx = document.getElementById('numbersChart');
+            if (!ctx) return;
+            
+            const canvasCtx = ctx.getContext('2d');
+
+            if (numbersChart) {
+                numbersChart.destroy();
+            }
+
+            numbersChart = new Chart(canvasCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.dates || [],
+                    datasets: [
+                        {
+                            label: 'Updated Numbers',
+                            data: data.numbersUpdated || [],
+                            backgroundColor: '#0084d4',
+                            borderColor: '#0084d4',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Failed Numbers',
+                            data: data.numbersFailed || [],
+                            backgroundColor: '#e74c3c',
+                            borderColor: '#e74c3c',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12,
+                                    weight: '600'
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false,
+                                color: '#f0f0f0'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                },
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Render SIMs chart
+        function renderSimsChart(data) {
+            const ctx = document.getElementById('simsChart');
+            if (!ctx) return;
+            
+            const canvasCtx = ctx.getContext('2d');
+
+            if (simsChart) {
+                simsChart.destroy();
+            }
+
+            simsChart = new Chart(canvasCtx, {
+                type: 'bar',
+                data: {
+                    labels: data.dates || [],
+                    datasets: [
+                        {
+                            label: 'Updated SIMs',
+                            data: data.simsUpdated || [],
+                            backgroundColor: '#0084d4',
+                            borderColor: '#0084d4',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Failed SIMs',
+                            data: data.simsFailed || [],
+                            backgroundColor: '#e74c3c',
+                            borderColor: '#e74c3c',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12,
+                                    weight: '600'
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false,
+                                color: '#f0f0f0'
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                },
+                                maxRotation: 45,
+                                minRotation: 0
+                            }
+                        }
+                    }
+                }
+            });
         }
 
         // Helper function to normalize numbers (remove non-digits)
@@ -1349,6 +1884,21 @@
             try {
                 const response = await fetch('/api/current-user');
                 if (!response.ok) {
+                    // Check for password expired
+                    let errorMsg = '';
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.message || '';
+                    } catch (err) {
+                        errorMsg = await response.text();
+                    }
+                    if (response.status === 403 && errorMsg.includes('Password expired')) {
+                        showToast('Your password has expired. Please reset your password to login.', 'error');
+                        setTimeout(() => {
+                            window.location.href = '/reset-staff-password.html';
+                        }, 1500);
+                        return;
+                    }
                     // Not authenticated, redirect to login
                     window.location.href = '/';
                     return;
@@ -1367,6 +1917,11 @@
                 await loadRestrictedCategories();
                 await loadRestrictedStatuses();
                 await loadRestrictedNumbers();
+                // Load dashboard data
+                await loadDashboardStats();
+                await loadChartData();
+                // Initialize report generator
+                initReportGenerator();
             } catch (error) {
                 console.error('Error checking authentication:', error);
                 window.location.href = '/';
@@ -1394,7 +1949,7 @@
             currentUserRole = user.role || 'staff';
             
             currentUser.textContent = user.username || 'User';
-            currentEmail.textContent = user.email || user.username + '@zain.com';
+            currentEmail.textContent = user.email || user.username + '@ss.zain.com';
             userAvatar.textContent = (user.username || 'U')[0].toUpperCase();
             userInfo.style.display = 'flex';
             
@@ -1405,11 +1960,23 @@
                 // Show category fields for admins
                 document.getElementById('categoryFieldGroup').style.display = 'block';
                 document.getElementById('bulkCategoryFieldGroup').style.display = 'block';
+                // Show admin-only sections
+                const adminOnlySections = ['adminOnlyResentMobile', 'adminOnlyResentSerials', 'adminOnlyDailyMobile', 'adminOnlyDailySim', 'adminOnlyReportGenerator'];
+                adminOnlySections.forEach(id => {
+                    const elem = document.getElementById(id);
+                    if (elem) elem.style.display = 'block';
+                });
                 // Show dashboard as the main page for admins
                 switchTab('dashboard');
             } else {
                 settingsDropdown.style.display = 'none';
                 dashboardNav.style.display = 'none';
+                // Hide admin-only sections for non-admins
+                const adminOnlySections = ['adminOnlyResentMobile', 'adminOnlyResentSerials', 'adminOnlyDailyMobile', 'adminOnlyDailySim', 'adminOnlyReportGenerator'];
+                adminOnlySections.forEach(id => {
+                    const elem = document.getElementById(id);
+                    if (elem) elem.style.display = 'none';
+                });
                 // Show view details as the main page for non-admins
                 switchTab('view');
             }
@@ -1595,10 +2162,12 @@
                         const isRestrictedCategory = data.data.categoryCode && restrictedCategories.includes(data.data.categoryCode);
                         const isRestrictedStatus = data.data.status && restrictedStatuses.includes(data.data.status.toUpperCase());
                         const isRestrictedPrefixMatch = matchesRestrictedPrefix(data.data.mobileNumber);
+                        const isPrefix9123 = matchesRestrictedPrefix(data.data.mobileNumber) && normalizeNumber(data.data.mobileNumber).startsWith(normalizeNumber('9123'));
                         const hasRestriction = isRestrictedCategory || isRestrictedStatus || isRestrictedPrefixMatch;
                         let freeButtonHTML;
                         if (hasRestriction) {
-                            if (currentUserRole === 'admin') {
+                            // Allow admin and corporate users (corporate only for prefix 9123)
+                            if (currentUserRole === 'admin' || (currentUserRole === 'corporate' && isPrefix9123)) {
                                 freeButtonHTML = `<button onclick="freeMobileStatus('${data.data.mobileNumber}', '${data.data.status || 'N/A'}')" style="background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;" title="Free this status">🔓 Free Status</button>`;
                             } else {
                                 freeButtonHTML = '<span style="color: #f44336; font-size: 11px; font-weight: 600;">Admin only</span>';
@@ -2644,6 +3213,323 @@
                 });
             }
         });
+
+        // Report Generator Functions
+        function initReportGenerator() {
+            const reportStartDate = document.getElementById('reportStartDate');
+            const reportEndDate = document.getElementById('reportEndDate');
+            const generateReportBtn = document.getElementById('generateReportBtn');
+            const downloadReportBtn = document.getElementById('downloadReportBtn');
+
+            if (!reportStartDate) return; // Not on dashboard
+
+            // Set default dates (last 30 days)
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+            reportEndDate.valueAsDate = today;
+            reportStartDate.valueAsDate = thirtyDaysAgo;
+
+            generateReportBtn.addEventListener('click', async () => {
+                const startDate = reportStartDate.value;
+                const endDate = reportEndDate.value;
+
+                if (!startDate || !endDate) {
+                    showReportError('Please select both start and end dates');
+                    return;
+                }
+
+                if (new Date(startDate) > new Date(endDate)) {
+                    showReportError('Start date must be before end date');
+                    return;
+                }
+
+                document.getElementById('reportLoadingSpinner').style.display = 'block';
+                document.getElementById('reportPreviewContainer').style.display = 'none';
+                document.getElementById('reportError').textContent = '';
+
+                try {
+                    const response = await fetch('/api/generate-report', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ startDate, endDate })
+                    });
+
+                    const data = await response.json();
+                    document.getElementById('reportLoadingSpinner').style.display = 'none';
+
+                    if (response.ok) {
+                        displayReportPreview(data);
+                        downloadReportBtn.style.display = 'inline-block';
+                    } else {
+                        showReportError(data.message || 'Failed to generate report');
+                    }
+                } catch (error) {
+                    document.getElementById('reportLoadingSpinner').style.display = 'none';
+                    showReportError('Error generating report: ' + error.message);
+                }
+            });
+
+            downloadReportBtn.addEventListener('click', async () => {
+                const startDate = reportStartDate.value;
+                const endDate = reportEndDate.value;
+
+                if (!startDate || !endDate) {
+                    showReportError('Please select both start and end dates');
+                    return;
+                }
+
+                if (new Date(startDate) > new Date(endDate)) {
+                    showReportError('Start date must be before end date');
+                    return;
+                }
+
+                document.getElementById('reportLoadingSpinner').style.display = 'block';
+                document.getElementById('reportLoadingSpinner').innerHTML = '<div style="display: inline-block; width: 24px; height: 24px; border: 3px solid #f3f3f3; border-top: 3px solid #27ae60; border-radius: 50%; animation: spin 1s linear infinite;"></div><p style="margin-top: 10px; color: #666;">Downloading report...</p>';
+
+                try {
+                    const response = await fetch(`/api/download-report?startDate=${startDate}&endDate=${endDate}`);
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        showReportError(errorData.message || 'Failed to download report');
+                        document.getElementById('reportLoadingSpinner').style.display = 'none';
+                        return;
+                    }
+
+                    const contentDisposition = response.headers.get('content-disposition');
+                    let filename = `Report_${startDate}_to_${endDate}.xlsx`;
+                    if (contentDisposition) {
+                        const filenameMatch = contentDisposition.match(/filename="?([^"]*)"?/);
+                        if (filenameMatch) {
+                            filename = filenameMatch[1];
+                        }
+                    }
+
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    
+                    document.getElementById('reportLoadingSpinner').style.display = 'none';
+                    showToast(`Report downloaded successfully as ${filename}`, 'success');
+                } catch (error) {
+                    document.getElementById('reportLoadingSpinner').style.display = 'none';
+                    showReportError('Error downloading report: ' + error.message);
+                }
+            });
+
+            // Staff Report Handler
+            const generateStaffReportBtn = document.getElementById('generateStaffReportBtn');
+            const staffType = document.getElementById('staffType');
+            const staffStartDate = document.getElementById('staffStartDate');
+            const staffEndDate = document.getElementById('staffEndDate');
+            const downloadStaffReportBtn = document.getElementById('downloadStaffReportBtn');
+            let currentStaffReportData = null;
+            let currentStaffType = '';
+
+            if (generateStaffReportBtn) {
+                generateStaffReportBtn.addEventListener('click', async () => {
+                    const type = staffType.value;
+                    const startDate = staffStartDate.value;
+                    const endDate = staffEndDate.value;
+
+                    if (!type || !startDate || !endDate) {
+                        showReportError('Please select staff type and both dates');
+                        return;
+                    }
+
+                    if (new Date(startDate) > new Date(endDate)) {
+                        showReportError('Start date must be before end date');
+                        return;
+                    }
+
+                    document.getElementById('staffReportLoading').style.display = 'block';
+                    document.getElementById('staffReportContainer').style.display = 'none';
+
+                    try {
+                        const response = await fetch(`/api/staff-report?staffType=${type}&startDate=${startDate}&endDate=${endDate}`);
+                        
+                        // Check if response is JSON
+                        const contentType = response.headers.get('content-type');
+                        let data;
+                        
+                        if (contentType && contentType.includes('application/json')) {
+                            data = await response.json();
+                        } else {
+                            // If not JSON, get text and display error
+                            const text = await response.text();
+                            document.getElementById('staffReportLoading').style.display = 'none';
+                            console.error('Server error response:', text);
+                            showReportError('Server error: ' + (text.substring(0, 100) || 'Unknown error'));
+                            return;
+                        }
+
+                        document.getElementById('staffReportLoading').style.display = 'none';
+
+                        if (data.success && data.data && data.data.length > 0) {
+                            const columns = ['USER_ID', 'USERNAME', 'ROLE', 'ACTIVE', 'CREATED_AT'];
+                            document.getElementById('staffReportTable').innerHTML = createReportTable(data.data, columns);
+                            document.getElementById('staffReportContainer').style.display = 'block';
+                            downloadStaffReportBtn.style.display = 'inline-block';
+                            currentStaffReportData = data.data;
+                            currentStaffType = type;
+                            const countMsg = data.isLimited ? 
+                                `Generated ${data.displayedRecords} of ${data.displayedRecords}+ ${type} staff members (showing first 10)` : 
+                                `Generated ${data.count} ${type} staff members`;
+                            showToast(countMsg, 'success');
+                        } else if (data.success && data.data) {
+                            document.getElementById('staffReportTable').innerHTML = `<p style="padding: 20px; text-align: center; color: #999;">No ${type} staff found for the selected date range</p>`;
+                            document.getElementById('staffReportContainer').style.display = 'block';
+                            downloadStaffReportBtn.style.display = 'none';
+                        } else {
+                            showReportError(data.message || 'Error generating staff report');
+                        }
+                    } catch (error) {
+                        document.getElementById('staffReportLoading').style.display = 'none';
+                        console.error('Staff report error:', error);
+                        showReportError('Error generating staff report: ' + error.message);
+                    }
+                });
+
+                // Download Staff Report Handler
+                downloadStaffReportBtn.addEventListener('click', async () => {
+                    if (!currentStaffReportData || currentStaffReportData.length === 0) {
+                        showReportError('No data to download');
+                        return;
+                    }
+
+                    try {
+                        const columns = ['USER_ID', 'USERNAME', 'ROLE', 'ACTIVE', 'CREATED_AT'];
+                        const csvContent = [
+                            columns.join(','),
+                            ...currentStaffReportData.map(row =>
+                                columns.map(col => {
+                                    const value = row[col] || '';
+                                    // Escape quotes and wrap in quotes if contains comma
+                                    return typeof value === 'string' && (value.includes(',') || value.includes('"'))
+                                        ? `"${value.replace(/"/g, '""')}"` : value;
+                                }).join(',')
+                            )
+                        ].join('\n');
+
+                        // Try to use Excel export API if available, otherwise download as CSV
+                        const startDate = staffStartDate.value;
+                        const endDate = staffEndDate.value;
+                        
+                        try {
+                            const response = await fetch(`/api/generate-report?startDate=${startDate}&endDate=${endDate}`);
+                            if (response.ok) {
+                                // Use existing Excel endpoint if available
+                                const blob = await response.blob();
+                                const filename = `Staff_Report_${currentStaffType}_${startDate}_to_${endDate}.xlsx`;
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = filename;
+                                document.body.appendChild(a);
+                                a.click();
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+                                showToast(`Staff report downloaded successfully as ${filename}`, 'success');
+                                return;
+                            }
+                        } catch (e) {
+                            // Fall back to CSV download if Excel fails
+                        }
+
+                        // Fallback: Download as CSV
+                        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                        const filename = `Staff_Report_${currentStaffType}_${startDate}_to_${endDate}.csv`;
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        showToast(`Staff report downloaded successfully as ${filename}`, 'success');
+                    } catch (error) {
+                        console.error('Download error:', error);
+                        showReportError('Error downloading staff report: ' + error.message);
+                    }
+                });
+            }
+        }
+
+        function displayReportPreview(data) {
+            const container = document.getElementById('reportPreviewContainer');
+            
+            if (data.numbers && data.numbers.length > 0) {
+                document.getElementById('numbersPreview').style.display = 'block';
+                document.getElementById('numbersPreviewTable').innerHTML = createReportTable(data.numbers, ['MOBILE_NUMBER', 'STATUS_BEFORE', 'STATUS_AFTER', 'USERNAME', 'UPDATE_TIME']);
+            } else {
+                document.getElementById('numbersPreview').style.display = 'none';
+            }
+
+            if (data.sims && data.sims.length > 0) {
+                document.getElementById('simsPreview').style.display = 'block';
+                document.getElementById('simsPreviewTable').innerHTML = createReportTable(data.sims, ['SIM_IDENTIFIER', 'STATUS_BEFORE', 'STATUS_AFTER', 'USERNAME', 'UPDATE_TIME']);
+            } else {
+                document.getElementById('simsPreview').style.display = 'none';
+            }
+
+            if (data.failedNumbers && data.failedNumbers.length > 0) {
+                document.getElementById('failedNumbersPreview').style.display = 'block';
+                document.getElementById('failedNumbersPreviewTable').innerHTML = createReportTable(data.failedNumbers, ['MOBILE_NUMBER', 'FAILURE_REASON', 'USERNAME', 'CREATED_AT']);
+            } else {
+                document.getElementById('failedNumbersPreview').style.display = 'none';
+            }
+
+            if (data.failedSims && data.failedSims.length > 0) {
+                document.getElementById('failedSimsPreview').style.display = 'block';
+                document.getElementById('failedSimsPreviewTable').innerHTML = createReportTable(data.failedSims, ['SIM_IDENTIFIER', 'FAILURE_REASON', 'USERNAME', 'CREATED_AT']);
+            } else {
+                document.getElementById('failedSimsPreview').style.display = 'none';
+            }
+
+            container.style.display = 'block';
+        }
+
+        function createReportTable(data, columns) {
+            let html = '<table style="width: 100%; border-collapse: collapse; font-size: 12px;"><thead><tr style="background: #f5f5f5;">';
+            
+            columns.forEach(col => {
+                html += `<th style="padding: 10px; text-align: left; border: 1px solid #ddd; font-weight: 600;">${col}</th>`;
+            });
+            
+            html += '</tr></thead><tbody>';
+            
+            data.forEach(row => {
+                html += '<tr>';
+                columns.forEach(col => {
+                    let value = row[col] || '-';
+                    html += `<td style="padding: 8px; border: 1px solid #ddd;">${value}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function showReportError(message) {
+            const errorContainer = document.getElementById('reportError');
+            if (!errorContainer) return;
+            errorContainer.textContent = message;
+            errorContainer.style.color = '#721c24';
+            errorContainer.style.padding = '12px';
+            errorContainer.style.background = '#f8d7da';
+            errorContainer.style.borderRadius = '6px';
+            errorContainer.style.marginBottom = '15px';
+            errorContainer.style.border = '1px solid #f5c6cb';
+        }
     </script>
 
     <!-- Footer -->

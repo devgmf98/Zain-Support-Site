@@ -2237,7 +2237,7 @@ app.post('/api/login', async (req, res) => {
   try {
     connection = await connectionPool.getConnection();
 
-    const query = `SELECT USER_ID, USERNAME, PASSWORD, ROLE, ACTIVE FROM ZAINSUPPORTUSERS 
+    const query = `SELECT USER_ID, USERNAME, PASSWORD, ROLE, ACTIVE, PASSWORD_EXPIRES_AT FROM ZAINSUPPORTUSERS 
                    WHERE USERNAME = :username AND ACTIVE = 1`;
 
     const result = await connection.execute(query, { username: username });
@@ -2254,6 +2254,7 @@ app.post('/api/login', async (req, res) => {
     const dbUsername = user[1];
     const hashedPassword = user[2];
     const role = user[3];
+    const passwordExpiresAt = user[5];
 
     // Compare passwords
     const passwordMatch = await bcrypt.compare(password, hashedPassword);
@@ -2263,6 +2264,29 @@ app.post('/api/login', async (req, res) => {
         success: false,
         message: 'Invalid username or password'
       });
+    }
+
+    // Check password expiration (except admin)
+    if (role !== 'admin' && passwordExpiresAt) {
+      const now = new Date();
+      let expires;
+      // Normalize Oracle timestamp to YYYY-MM-DDTHH:MM:SS (strip milliseconds)
+      if (typeof passwordExpiresAt === 'string') {
+        let ts = passwordExpiresAt.split('.')[0]; // Remove milliseconds if present
+        ts = ts.replace(' ', 'T');
+        expires = new Date(ts);
+      } else if (passwordExpiresAt instanceof Date) {
+        expires = passwordExpiresAt;
+      } else {
+        expires = new Date(passwordExpiresAt);
+      }
+      // Block login if now >= expires (including exact time)
+      if (now >= expires) {
+        return res.status(403).json({
+          success: false,
+          message: 'Password expired. Please reset your password.'
+        });
+      }
     }
 
     // Create session
@@ -3276,7 +3300,7 @@ app.post('/api/update-status', requireAuth, async (req, res) => {
       }
     }
     
-    // Check if mobile number matches any restricted prefix - only admins can update
+    // Check if mobile number matches any restricted prefix - only admins can update, except corporate for 9123
     const restrictedPrefixCheckQuery = `SELECT PREFIX FROM RESTRICTED_NUMBERS_PREFIX`;
     const restrictedPrefixResult = await connection.execute(restrictedPrefixCheckQuery);
     const restrictedPrefixes = restrictedPrefixResult.rows.map(row => row[0]);
@@ -3284,8 +3308,8 @@ app.post('/api/update-status', requireAuth, async (req, res) => {
     const isRestrictedPrefix = restrictedPrefixes.some(prefix => matchesPrefix(mobileNumber, prefix));
     
     if (isRestrictedPrefix) {
-      // Only admins can update restricted prefix numbers
-      if (req.session.user.role !== 'admin') {
+      // Corporate users can update prefix 9123, otherwise only admins can
+      if (req.session.user.role !== 'admin' && !(req.session.user.role === 'corporate' && matchesPrefix(mobileNumber, '9123'))) {
         // Log this failure
         const failReason = `Restricted prefix - admin access required`;
         await logFailedNumber(connection, mobileNumber, failReason, req.session.user.username);
@@ -3295,7 +3319,11 @@ app.post('/api/update-status', requireAuth, async (req, res) => {
           message: `Access denied. Mobile number ${mobileNumber} matches a restricted prefix. Only admins can update restricted numbers.`
         });
       }
-      console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted mobile number ${mobileNumber}`);
+      if (req.session.user.role === 'admin') {
+        console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted mobile number ${mobileNumber}`);
+      } else if (req.session.user.role === 'corporate' && matchesPrefix(mobileNumber, '9123')) {
+        console.log(`[${new Date().toISOString()}] Corporate user ${req.session.user.username} is updating prefix 9123 mobile number ${mobileNumber}`);
+      }
     }
 
     // Build update query based on what fields need updating
@@ -3483,11 +3511,11 @@ app.post('/api/update-sims-status', requireAuth, async (req, res) => {
           continue;
         }
 
-        // Check if SIM matches a restricted prefix - only admins can update
+        // Check if SIM matches a restricted prefix - only admins can update, except corporate for 9123
         const isSimRestrictedPrefix = restrictedPrefixes.some(prefix => matchesPrefix(sim, prefix));
         if (isSimRestrictedPrefix) {
-          // Only admins can update restricted prefix SIMs
-          if (req.session.user.role !== 'admin') {
+          // Corporate users can update prefix 9123, otherwise only admins
+          if (req.session.user.role !== 'admin' && !(req.session.user.role === 'corporate' && matchesPrefix(sim, '9123'))) {
             restrictedCount++;
             const failReason = `Restricted prefix - admin access required`;
             failedSims.push(`${sim} (restricted prefix - admin only)`);
@@ -3495,7 +3523,11 @@ app.post('/api/update-sims-status', requireAuth, async (req, res) => {
             console.log(`[${new Date().toISOString()}] User ${req.session.user.username} attempted to update restricted SIM ${sim}`);
             continue;
           }
-          console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted SIM ${sim}`);
+          if (req.session.user.role === 'admin') {
+            console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted SIM ${sim}`);
+          } else if (req.session.user.role === 'corporate' && matchesPrefix(sim, '9123')) {
+            console.log(`[${new Date().toISOString()}] Corporate user ${req.session.user.username} is updating prefix 9123 SIM ${sim}`);
+          }
         }
 
         // Update query for GSM_SIMS_MASTER
@@ -3669,11 +3701,11 @@ app.post('/api/update-sim-num-status', requireAuth, async (req, res) => {
           continue;
         }
 
-        // Check if SIM number matches a restricted prefix - only admins can update
+        // Check if SIM number matches a restricted prefix - only admins can update, except corporate for 9123
         const isNumRestrictedPrefix = restrictedPrefixes.some(prefix => matchesPrefix(num, prefix));
         if (isNumRestrictedPrefix) {
-          // Only admins can update restricted prefix SIM numbers
-          if (req.session.user.role !== 'admin') {
+          // Corporate users can update prefix 9123, otherwise only admins
+          if (req.session.user.role !== 'admin' && !(req.session.user.role === 'corporate' && matchesPrefix(num, '9123'))) {
             restrictedCount++;
             const failReason = `Restricted prefix - admin access required`;
             failedSims.push(`${num} (restricted prefix - admin only)`);
@@ -3681,7 +3713,11 @@ app.post('/api/update-sim-num-status', requireAuth, async (req, res) => {
             console.log(`[${new Date().toISOString()}] User ${req.session.user.username} attempted to update restricted SIM number ${num}`);
             continue;
           }
-          console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted SIM number ${num}`);
+          if (req.session.user.role === 'admin') {
+            console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted SIM number ${num}`);
+          } else if (req.session.user.role === 'corporate' && matchesPrefix(num, '9123')) {
+            console.log(`[${new Date().toISOString()}] Corporate user ${req.session.user.username} is updating prefix 9123 SIM number ${num}`);
+          }
         }
 
         // Update query for GSM_SIMS_MASTER by SIM_NUM_V
@@ -3866,35 +3902,41 @@ app.post('/api/free-category', requireAuth, async (req, res) => {
     const isRestrictedPrefix = restrictedPrefixes.some(prefix => matchesPrefix(mobileNumber, prefix));
 
     // If any restriction exists, only admins can free
-    if (isStatusRestricted || isCategoryRestricted || isRestrictedPrefix) {
-      if (req.session.user.role !== 'admin') {
-        if (isStatusRestricted) {
-          return res.status(403).json({
-            success: false,
-            message: `Cannot free. Mobile number ${mobileNumber} has a restricted status. Only admins can modify.`
-          });
-        } else if (isCategoryRestricted) {
-          return res.status(403).json({
-            success: false,
-            message: `Cannot free. Mobile number ${mobileNumber} has a restricted category. Only admins can modify.`
-          });
-        } else if (isRestrictedPrefix) {
-          return res.status(403).json({
-            success: false,
-            message: `Cannot free. Mobile number ${mobileNumber} matches a restricted prefix. Only admins can modify.`
-          });
+      if (isStatusRestricted || isCategoryRestricted || isRestrictedPrefix) {
+        // Special case: allow corporate users to free/update prefix 9123
+        if (isRestrictedPrefix && req.session.user.role === 'corporate' && matchesPrefix(mobileNumber, '9123')) {
+          console.log(`[${new Date().toISOString()}] Corporate user ${req.session.user.username} is freeing prefix 9123 for mobile ${mobileNumber}`);
+          // allow
+        } else if (req.session.user.role !== 'admin') {
+          if (isStatusRestricted) {
+            return res.status(403).json({
+              success: false,
+              message: `Cannot free. Mobile number ${mobileNumber} has a restricted status. Only admins can modify.`
+            });
+          } else if (isCategoryRestricted) {
+            return res.status(403).json({
+              success: false,
+              message: `Cannot free. Mobile number ${mobileNumber} has a restricted category. Only admins can modify.`
+            });
+          } else if (isRestrictedPrefix) {
+            return res.status(403).json({
+              success: false,
+              message: `Cannot free. Mobile number ${mobileNumber} matches a restricted prefix. Only admins can modify.`
+            });
+          }
         }
+        if (isCategoryRestricted) {
+          console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is freeing restricted category ${currentCategory} for mobile ${mobileNumber}`);
+        }
+        if (isRestrictedPrefix) {
+          if (req.session.user.role === 'admin') {
+            console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is freeing restricted prefix number ${mobileNumber}`);
+          }
+        }
+      } else {
+        // All are unrestricted - staff can also free
+        console.log(`[${new Date().toISOString()}] User ${req.session.user.username} is freeing unrestricted status for mobile ${mobileNumber}`);
       }
-      if (isCategoryRestricted) {
-        console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is freeing restricted category ${currentCategory} for mobile ${mobileNumber}`);
-      }
-      if (isRestrictedPrefix) {
-        console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is freeing restricted prefix number ${mobileNumber}`);
-      }
-    } else {
-      // All are unrestricted - staff can also free
-      console.log(`[${new Date().toISOString()}] User ${req.session.user.username} is freeing unrestricted status for mobile ${mobileNumber}`);
-    }
 
     // Free the category by setting STATUS_V to 'F' (but keep the category code)
     const updateQuery = `UPDATE CBS_CORE.GSM_MOBILE_MASTER 
@@ -4089,11 +4131,11 @@ app.post('/api/bulk-update-status', requireAuth, async (req, res) => {
           }
         }
 
-        // Check if mobile number matches a restricted prefix - only admins can update
+        // Check if mobile number matches a restricted prefix - only admins can update, except corporate for 9123
         const isMobileRestrictedPrefix = restrictedPrefixes.some(prefix => matchesPrefix(mobileNumber, prefix));
         if (isMobileRestrictedPrefix) {
-          // Only admins can update restricted prefix numbers
-          if (req.session.user.role !== 'admin') {
+          // Corporate users can update prefix 9123, otherwise only admins
+          if (req.session.user.role !== 'admin' && !(req.session.user.role === 'corporate' && matchesPrefix(mobileNumber, '9123'))) {
             restrictedCount++;
             const failReason = `Restricted prefix - admin access required`;
             failedNumbers.push(`${mobileNumber} - Restricted prefix (admin only)`);
@@ -4101,7 +4143,11 @@ app.post('/api/bulk-update-status', requireAuth, async (req, res) => {
             console.log(`[${new Date().toISOString()}] User ${req.session.user.username} attempted to update restricted mobile ${mobileNumber}`);
             continue;
           }
-          console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted mobile ${mobileNumber}`);
+          if (req.session.user.role === 'admin') {
+            console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted mobile ${mobileNumber}`);
+          } else if (req.session.user.role === 'corporate' && matchesPrefix(mobileNumber, '9123')) {
+            console.log(`[${new Date().toISOString()}] Corporate user ${req.session.user.username} is updating prefix 9123 mobile ${mobileNumber}`);
+          }
         }
 
         // Update the status and optionally category
@@ -5253,6 +5299,208 @@ app.get('/api/dashboard-stats', requireAuth, async (req, res) => {
       success: false,
       message: 'Error fetching dashboard statistics',
       error: err.message
+    });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (e) {
+        console.error('Error closing connection:', e);
+      }
+    }
+  }
+});
+
+/**
+ * Get recent mobile number updates (last 11 records)
+ */
+app.get('/api/recent-mobiles', requireAuth, async (req, res) => {
+  let connection;
+  try {
+    connection = await connectionPool.getConnection();
+
+    const query = `
+      SELECT MOBILE_NUMBER, STATUS_BEFORE, STATUS_AFTER, USERNAME, UPDATE_TIME
+      FROM ZAINSUPPORTNUMLOGS
+      ORDER BY UPDATE_TIME DESC
+      FETCH FIRST 11 ROWS ONLY
+    `;
+
+    const result = await connection.execute(query);
+
+    const recentMobiles = result.rows.map(row => ({
+      MOBILE_NUMBER: row[0] || '',
+      STATUS_BEFORE: row[1] || '',
+      STATUS_AFTER: row[2] || '',
+      USERNAME: row[3] || '',
+      UPDATE_TIME: row[4] ? new Date(row[4]).toLocaleString() : ''
+    }));
+
+    res.json({
+      success: true,
+      data: recentMobiles
+    });
+
+  } catch (err) {
+    console.error('Recent mobiles error:', err.message);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching recent mobile updates',
+      error: err.message,
+      data: []
+    });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (e) {
+        console.error('Error closing connection:', e);
+      }
+    }
+  }
+});
+
+/**
+ * Get recent SIM updates (last 11 records)
+ */
+app.get('/api/recent-sims', requireAuth, async (req, res) => {
+  let connection;
+  try {
+    connection = await connectionPool.getConnection();
+
+    const query = `
+      SELECT SIM_IDENTIFIER, STATUS_BEFORE, STATUS_AFTER, USERNAME, UPDATE_TIME
+      FROM ZAIN_SUPPORT_SIMS_LOGS
+      ORDER BY UPDATE_TIME DESC
+      FETCH FIRST 11 ROWS ONLY
+    `;
+
+    const result = await connection.execute(query);
+
+    const recentSims = result.rows.map(row => ({
+      SIM_IDENTIFIER: row[0] || '',
+      STATUS_BEFORE: row[1] || '',
+      STATUS_AFTER: row[2] || '',
+      USERNAME: row[3] || '',
+      UPDATE_TIME: row[4] ? new Date(row[4]).toLocaleString() : ''
+    }));
+
+    res.json({
+      success: true,
+      data: recentSims
+    });
+
+  } catch (err) {
+    console.error('Recent SIMs error:', err.message);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching recent SIM updates',
+      error: err.message,
+      data: []
+    });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (e) {
+        console.error('Error closing connection:', e);
+      }
+    }
+  }
+});
+
+/**
+ * Get staff report data by type and date range
+ */
+app.get('/api/staff-report', requireAuth, async (req, res) => {
+  // Only admins can access staff reports
+  if (req.session.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Admin access required.',
+      error: 'ADMIN_ONLY',
+      data: []
+    });
+  }
+
+  const { staffType, startDate, endDate } = req.query;
+
+  // Validate required parameters
+  if (!staffType || !startDate || !endDate) {
+    return res.status(400).json({
+      success: false,
+      message: 'Missing required parameters: staffType, startDate, endDate',
+      error: 'MISSING_PARAMS',
+      data: []
+    });
+  }
+
+  // Validate staffType
+  const validTypes = ['shop', 'corporate', 'admin'];
+  if (!validTypes.includes(staffType)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid staffType. Must be shop, corporate, or admin',
+      error: 'INVALID_STAFF_TYPE',
+      data: []
+    });
+  }
+
+  let connection;
+  try {
+    connection = await connectionPool.getConnection();
+
+    // Parse dates
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // Set time to beginning and end of day respectively
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
+
+    // Convert to Oracle date format
+    const startDateStr = start.toISOString().split('T')[0];
+    const endDateStr = end.toISOString().split('T')[0];
+
+    const query = `
+      SELECT USER_ID, USERNAME, ROLE, ACTIVE, CREATED_AT
+      FROM ZAINSUPPORTUSERS
+      WHERE ROLE = :staffType
+      AND TRUNC(CREATED_AT) >= TO_DATE(:startDate, 'YYYY-MM-DD')
+      AND TRUNC(CREATED_AT) <= TO_DATE(:endDate, 'YYYY-MM-DD')
+      ORDER BY CREATED_AT DESC
+      FETCH FIRST 10 ROWS ONLY
+    `;
+
+    const result = await connection.execute(query, {
+      staffType: staffType,
+      startDate: startDateStr,
+      endDate: endDateStr
+    });
+
+    const staffData = result.rows.map(row => ({
+      USER_ID: row[0],
+      USERNAME: row[1] || '',
+      ROLE: row[2] || '',
+      ACTIVE: row[3] === 1 ? 'Yes' : 'No',
+      CREATED_AT: row[4] ? new Date(row[4]).toLocaleString() : ''
+    }));
+
+    res.json({
+      success: true,
+      data: staffData,
+      count: staffData.length,
+      displayedRecords: staffData.length,
+      isLimited: staffData.length === 10
+    });
+
+  } catch (err) {
+    console.error('Staff report error:', err.message);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching staff report',
+      error: err.message,
+      data: []
     });
   } finally {
     if (connection) {
