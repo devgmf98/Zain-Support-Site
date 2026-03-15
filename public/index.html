@@ -2012,6 +2012,14 @@
             document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
+            const adminOnlySectionsIds = ['adminOnlyResentMobile', 'adminOnlyResentSerials', 'adminOnlyDailyMobile', 'adminOnlyDailySim', 'adminOnlyReportGenerator'];
+            
+            // Hide admin-only sections by default
+            adminOnlySectionsIds.forEach(id => {
+                const elem = document.getElementById(id);
+                if (elem) elem.style.display = 'none';
+            });
+
             const sectionMap = {
                 'dashboard': 'dashboardSection',
                 'view': 'viewSection',
@@ -2079,6 +2087,14 @@
                 document.getElementById(sectionMap[tab]).classList.add('active');
                 if (event && event.target.closest('.nav-item')) {
                     event.target.closest('.nav-item').classList.add('active');
+                }
+                
+                // Show admin-only sections only on dashboard tab
+                if (tab === 'dashboard') {
+                    adminOnlySectionsIds.forEach(id => {
+                        const elem = document.getElementById(id);
+                        if (elem) elem.style.display = 'block';
+                    });
                 }
                 
                 // Load all settings data if opening main settings tab
