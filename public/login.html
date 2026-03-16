@@ -354,6 +354,14 @@
                 }
 
                 showAlert('Login successful! Redirecting...', 'success');
+                
+                // Show password expiration warning if present
+                if (data.passwordExpirationWarning) {
+                    console.log('Password expiration warning:', data.passwordExpirationWarning);
+                    // Store warning in sessionStorage to display on next page
+                    sessionStorage.setItem('passwordExpirationWarning', data.passwordExpirationWarning);
+                }
+                
                 setTimeout(() => {
                     window.location.href = '/';
                 }, 1000);

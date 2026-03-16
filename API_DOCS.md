@@ -35,9 +35,17 @@ The roles available in the system are "admin", "staff", "corporate", and "shop".
   "user": {
     "username": "admin",
     "role": "admin"
-  }
+  },
+  "passwordExpirationWarning": "Your password will expire in 4 days and 20 hours"
 }
 ```
+
+**Password Expiry Information:**
+- Passwords expire **90 days** after creation, change, or reset (non-admin users only)
+- Admin users have no password expiry
+- Users receive a warning if password expires within **5 days (120 hours)**
+- Warning message format: "Your password will expire in X days and Y hours" or "X hours and Y minutes"
+- The `passwordExpirationWarning` field is only included in the response if a warning applies
 
 **Response (Error):**
 ```json
@@ -207,7 +215,7 @@ Enable or disable a user account. **Admin only**.
 ### 7. Change Password
 **POST** `/api/change-password`
 
-Change password for current user.
+Change password for the currently logged-in user. **Requires authentication**.
 
 **Request Body:**
 ```json
@@ -225,7 +233,7 @@ Change password for current user.
 }
 ```
 
-**Response (Error):**
+**Response (Error - Invalid Current Password):**
 ```json
 {
   "success": false,
@@ -233,11 +241,44 @@ Change password for current user.
 }
 ```
 
-**Validation Rules:**
-- Current password must be correct
-- New password must be at least 6 characters
+**Response (Error - Password Too Short):**
+```json
+{
+  "success": false,
+  "message": "New password must be at least 6 characters"
+}
+```
 
-**Status Codes:** 200, 401, 404, 500
+**Response (Error - Not Authenticated):**
+```json
+{
+  "success": false,
+  "message": "Unauthorized. Please login."
+}
+```
+
+**Validation Rules:**
+- User must be authenticated (logged in)
+- Current password must be correct and verified against bcrypt hash
+- New password must be at least 6 characters long
+- New password must be different from the current password
+- Current password field is required
+- New password field is required
+
+**Status Codes:** 
+- 200: Password changed successfully
+- 400: Invalid request (missing fields, password too short, new password same as current)
+- 401: Unauthorized (not logged in or current password incorrect)
+- 500: Database error
+
+**Security Notes:**
+- Passwords are hashed using bcrypt before storage
+- Current session remains valid after password change
+- User can continue using the application without re-authentication
+- Password is immediately updated in the ZAINSUPPORTUSERS table
+- Change is non-reversible
+
+**Status Codes:** 200, 400, 401, 500
 
 ---
 
@@ -569,6 +610,8 @@ Stores user account information:
 - `ROLE` - "admin" or "staff"
 - `ACTIVE` - 1 (active) or 0 (inactive)
 - `CREATED_AT` - Account creation timestamp
+- `PASSWORD_UPDATED_AT` - Timestamp of last password change or reset (updates when password is changed via `/api/change-password` or reset via `/api/reset-password`)
+- `PASSWORD_EXPIRES_AT` - Timestamp when password expires (90 days from creation, change, or reset for non-admin users; NULL for admin users)
 
 ### ZAINSUPPORTNUMLOGS
 Logs mobile number status updates:

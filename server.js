@@ -330,6 +330,26 @@ async function createUsersTable() {
     
     if (tableCheckResult.rows.length > 0) {
       console.log('[' + new Date().toISOString() + '] ZAINSUPPORTUSERS table already exists');
+      
+      // Check if PASSWORD_UPDATED_AT column exists
+      const checkColumnQuery = `SELECT column_name FROM user_tab_columns WHERE table_name = 'ZAINSUPPORTUSERS' AND column_name = 'PASSWORD_UPDATED_AT'`;
+      const columnCheckResult = await connection.execute(checkColumnQuery);
+      
+      if (columnCheckResult.rows.length === 0) {
+        console.log('[' + new Date().toISOString() + '] Adding PASSWORD_UPDATED_AT column to ZAINSUPPORTUSERS table');
+        try {
+          await connection.execute(`ALTER TABLE ZAINSUPPORTUSERS ADD (PASSWORD_UPDATED_AT TIMESTAMP)`);
+          console.log('[' + new Date().toISOString() + '] ✓ PASSWORD_UPDATED_AT column added successfully');
+          
+          // Update existing records to set PASSWORD_UPDATED_AT to their CREATED_AT value
+          await connection.execute(`UPDATE ZAINSUPPORTUSERS SET PASSWORD_UPDATED_AT = CREATED_AT`);
+          await connection.commit();
+          console.log('[' + new Date().toISOString() + '] ✓ Existing records updated with PASSWORD_UPDATED_AT');
+        } catch (err) {
+          console.error('[' + new Date().toISOString() + '] Error adding PASSWORD_UPDATED_AT column:', err.message);
+        }
+      }
+      
       await connection.close();
       return;
     }
@@ -2272,13 +2292,43 @@ app.post('/api/login', async (req, res) => {
       role: role
     };
 
+    // Calculate password expiration warning
+    let passwordExpirationWarning = null;
+    if (role !== 'admin' && passwordExpiresAt) {
+      const now = new Date();
+      let expires;
+      if (typeof passwordExpiresAt === 'string') {
+        let ts = passwordExpiresAt.split('.')[0];
+        ts = ts.replace(' ', 'T');
+        expires = new Date(ts);
+      } else if (passwordExpiresAt instanceof Date) {
+        expires = passwordExpiresAt;
+      } else {
+        expires = new Date(passwordExpiresAt);
+      }
+      
+      const remainingMs = expires - now;
+      const remainingHours = Math.floor(remainingMs / (1000 * 60 * 60));
+      const remainingMinutes = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+      
+      // If password expires within 5 days (120 hours), send warning
+      if (remainingMs > 0 && remainingHours <= 120) {
+        if (remainingHours > 0) {
+          passwordExpirationWarning = `Your password will expire in ${remainingHours} hour${remainingHours > 1 ? 's' : ''} and ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+        } else {
+          passwordExpirationWarning = `Your password will expire in ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}`;
+        }
+      }
+    }
+
     res.json({
       success: true,
       message: 'Login successful',
       user: {
         username: dbUsername,
         role: role
-      }
+      },
+      passwordExpirationWarning: passwordExpirationWarning
     });
 
     console.log(`[${new Date().toISOString()}] User '${dbUsername}' logged in successfully`);
@@ -2399,7 +2449,7 @@ app.post('/api/create-user', requireAuth, async (req, res) => {
     // Insert new user with password expiry (5 min from now, except admin)
     let passwordExpiresAt = null;
     if (role.toLowerCase() !== 'admin') {
-      const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const d = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
       passwordExpiresAt = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
     }
     const insertQuery = `
@@ -2635,16 +2685,15 @@ app.post('/api/change-password', requireAuth, async (req, res) => {
     // Hash new password
     const newHashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // Set password expiry (5 min from now, except admin)
+    // Set password expiry (3 months from now, except admin)
     let passwordExpiresAt = null;
     if (req.session.user.role !== 'admin') {
-      const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const d = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
       passwordExpiresAt = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
     }
-    const updateQuery = `UPDATE ZAINSUPPORTUSERS SET PASSWORD = :password, PASSWORD_EXPIRES_AT = :passwordExpiresAt WHERE USER_ID = :userId`;
-    const updateQueryTS = `UPDATE ZAINSUPPORTUSERS SET PASSWORD = :password, PASSWORD_EXPIRES_AT = TO_TIMESTAMP(:passwordExpiresAt, 'YYYY-MM-DD HH24:MI:SS') WHERE USER_ID = :userId`;
+    const updateQuery = `UPDATE ZAINSUPPORTUSERS SET PASSWORD = :password, PASSWORD_EXPIRES_AT = TO_TIMESTAMP(:passwordExpiresAt, 'YYYY-MM-DD HH24:MI:SS'), PASSWORD_UPDATED_AT = SYSDATE WHERE USER_ID = :userId`;
     await connection.execute(
-      updateQueryTS,
+      updateQuery,
       { password: newHashedPassword, passwordExpiresAt, userId: req.session.user.id },
       { autoCommit: true }
     );
@@ -2707,16 +2756,15 @@ app.post('/api/reset-password', requireAuth, async (req, res) => {
     const roleQuery = `SELECT ROLE FROM ZAINSUPPORTUSERS WHERE USER_ID = :userId`;
     const roleResult = await connection.execute(roleQuery, { userId });
     const userRole = roleResult.rows[0][0];
-    // Set password expiry (5 min from now, except admin)
+    // Set password expiry (3 months from now, except admin)
     let passwordExpiresAt = null;
     if (userRole !== 'admin') {
-      const d = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const d = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
       passwordExpiresAt = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
     }
     // Update password and expiry
-    const updateQuery = `UPDATE ZAINSUPPORTUSERS SET PASSWORD = :password, PASSWORD_EXPIRES_AT = :passwordExpiresAt WHERE USER_ID = :userId`;
-    const updateQueryTS2 = `UPDATE ZAINSUPPORTUSERS SET PASSWORD = :password, PASSWORD_EXPIRES_AT = TO_TIMESTAMP(:passwordExpiresAt, 'YYYY-MM-DD HH24:MI:SS') WHERE USER_ID = :userId`;
-    await connection.execute(updateQueryTS2, { password: hashedPassword, passwordExpiresAt, userId }, { autoCommit: true });
+    const updateQuery = `UPDATE ZAINSUPPORTUSERS SET PASSWORD = :password, PASSWORD_EXPIRES_AT = TO_TIMESTAMP(:passwordExpiresAt, 'YYYY-MM-DD HH24:MI:SS'), PASSWORD_UPDATED_AT = SYSDATE WHERE USER_ID = :userId`;
+    await connection.execute(updateQuery, { password: hashedPassword, passwordExpiresAt, userId }, { autoCommit: true });
     console.log(`[${new Date().toISOString()}] Password reset for user ${username}`);
     res.json({
       success: true,
@@ -3276,7 +3324,7 @@ app.post('/api/update-status', requireAuth, async (req, res) => {
       }
     }
     
-    // Check if mobile number matches any restricted prefix - only admins can update
+    // Check if mobile number matches any restricted prefix - only admins can update, except corporate for 9123
     const restrictedPrefixCheckQuery = `SELECT PREFIX FROM RESTRICTED_NUMBERS_PREFIX`;
     const restrictedPrefixResult = await connection.execute(restrictedPrefixCheckQuery);
     const restrictedPrefixes = restrictedPrefixResult.rows.map(row => row[0]);
@@ -3284,8 +3332,8 @@ app.post('/api/update-status', requireAuth, async (req, res) => {
     const isRestrictedPrefix = restrictedPrefixes.some(prefix => matchesPrefix(mobileNumber, prefix));
     
     if (isRestrictedPrefix) {
-      // Only admins can update restricted prefix numbers
-      if (req.session.user.role !== 'admin') {
+      // Corporate users can update prefix 9123, otherwise only admins can
+      if (req.session.user.role !== 'admin' && !(req.session.user.role === 'corporate' && matchesPrefix(mobileNumber, '9123'))) {
         // Log this failure
         const failReason = `Restricted prefix - admin access required`;
         await logFailedNumber(connection, mobileNumber, failReason, req.session.user.username);
@@ -3295,7 +3343,11 @@ app.post('/api/update-status', requireAuth, async (req, res) => {
           message: `Access denied. Mobile number ${mobileNumber} matches a restricted prefix. Only admins can update restricted numbers.`
         });
       }
-      console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted mobile number ${mobileNumber}`);
+      if (req.session.user.role === 'admin') {
+        console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted mobile number ${mobileNumber}`);
+      } else if (req.session.user.role === 'corporate' && matchesPrefix(mobileNumber, '9123')) {
+        console.log(`[${new Date().toISOString()}] Corporate user ${req.session.user.username} is updating prefix 9123 mobile number ${mobileNumber}`);
+      }
     }
 
     // Build update query based on what fields need updating
@@ -3483,11 +3535,11 @@ app.post('/api/update-sims-status', requireAuth, async (req, res) => {
           continue;
         }
 
-        // Check if SIM matches a restricted prefix - only admins can update
+        // Check if SIM matches a restricted prefix - only admins can update, except corporate for 9123
         const isSimRestrictedPrefix = restrictedPrefixes.some(prefix => matchesPrefix(sim, prefix));
         if (isSimRestrictedPrefix) {
-          // Only admins can update restricted prefix SIMs
-          if (req.session.user.role !== 'admin') {
+          // Corporate users can update prefix 9123, otherwise only admins
+          if (req.session.user.role !== 'admin' && !(req.session.user.role === 'corporate' && matchesPrefix(sim, '9123'))) {
             restrictedCount++;
             const failReason = `Restricted prefix - admin access required`;
             failedSims.push(`${sim} (restricted prefix - admin only)`);
@@ -3495,7 +3547,11 @@ app.post('/api/update-sims-status', requireAuth, async (req, res) => {
             console.log(`[${new Date().toISOString()}] User ${req.session.user.username} attempted to update restricted SIM ${sim}`);
             continue;
           }
-          console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted SIM ${sim}`);
+          if (req.session.user.role === 'admin') {
+            console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted SIM ${sim}`);
+          } else if (req.session.user.role === 'corporate' && matchesPrefix(sim, '9123')) {
+            console.log(`[${new Date().toISOString()}] Corporate user ${req.session.user.username} is updating prefix 9123 SIM ${sim}`);
+          }
         }
 
         // Update query for GSM_SIMS_MASTER
@@ -3669,11 +3725,11 @@ app.post('/api/update-sim-num-status', requireAuth, async (req, res) => {
           continue;
         }
 
-        // Check if SIM number matches a restricted prefix - only admins can update
+        // Check if SIM number matches a restricted prefix - only admins can update, except corporate for 9123
         const isNumRestrictedPrefix = restrictedPrefixes.some(prefix => matchesPrefix(num, prefix));
         if (isNumRestrictedPrefix) {
-          // Only admins can update restricted prefix SIM numbers
-          if (req.session.user.role !== 'admin') {
+          // Corporate users can update prefix 9123, otherwise only admins
+          if (req.session.user.role !== 'admin' && !(req.session.user.role === 'corporate' && matchesPrefix(num, '9123'))) {
             restrictedCount++;
             const failReason = `Restricted prefix - admin access required`;
             failedSims.push(`${num} (restricted prefix - admin only)`);
@@ -3681,7 +3737,11 @@ app.post('/api/update-sim-num-status', requireAuth, async (req, res) => {
             console.log(`[${new Date().toISOString()}] User ${req.session.user.username} attempted to update restricted SIM number ${num}`);
             continue;
           }
-          console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted SIM number ${num}`);
+          if (req.session.user.role === 'admin') {
+            console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted SIM number ${num}`);
+          } else if (req.session.user.role === 'corporate' && matchesPrefix(num, '9123')) {
+            console.log(`[${new Date().toISOString()}] Corporate user ${req.session.user.username} is updating prefix 9123 SIM number ${num}`);
+          }
         }
 
         // Update query for GSM_SIMS_MASTER by SIM_NUM_V
@@ -3908,23 +3968,8 @@ app.post('/api/free-category', requireAuth, async (req, res) => {
     );
 
     if (updateResult.rowsAffected > 0) {
-      // Log the status free operation
-      const logQuery = `INSERT INTO UPDATE_LOGS (LOG_ID, MOBILE_NUMBER_V, PREVIOUS_VALUE, NEW_VALUE, FIELD_MODIFIED, MODIFIED_BY, MODIFIED_AT)
-                        VALUES (UPDATE_LOGS_SEQ.NEXTVAL, :mobileNumber, :previousStatus, 'F', 'STATUS_V', :modifiedBy, SYSDATE)`;
-      
-      try {
-        await connection.execute(
-          logQuery,
-          {
-            mobileNumber: mobileNumber,
-            previousStatus: currentStatus,
-            modifiedBy: req.session.user.username
-          },
-          { autoCommit: true }
-        );
-      } catch (logErr) {
-        console.warn(`[${new Date().toISOString()}] Warning: Could not log status free operation:`, logErr.message);
-      }
+      // Log the status free operation using standard logging function
+      await logNumberUpdate(connection, mobileNumber, currentStatus, 'F', req.session.user.username);
 
       console.log(`[${new Date().toISOString()}] Status freed for mobile number ${mobileNumber} by ${req.session.user.username} (Previous status: ${currentStatus}, Category kept: ${currentCategory})`);
 
@@ -4089,11 +4134,11 @@ app.post('/api/bulk-update-status', requireAuth, async (req, res) => {
           }
         }
 
-        // Check if mobile number matches a restricted prefix - only admins can update
+        // Check if mobile number matches a restricted prefix - only admins can update, except corporate for 9123
         const isMobileRestrictedPrefix = restrictedPrefixes.some(prefix => matchesPrefix(mobileNumber, prefix));
         if (isMobileRestrictedPrefix) {
-          // Only admins can update restricted prefix numbers
-          if (req.session.user.role !== 'admin') {
+          // Corporate users can update prefix 9123, otherwise only admins
+          if (req.session.user.role !== 'admin' && !(req.session.user.role === 'corporate' && matchesPrefix(mobileNumber, '9123'))) {
             restrictedCount++;
             const failReason = `Restricted prefix - admin access required`;
             failedNumbers.push(`${mobileNumber} - Restricted prefix (admin only)`);
@@ -4101,7 +4146,11 @@ app.post('/api/bulk-update-status', requireAuth, async (req, res) => {
             console.log(`[${new Date().toISOString()}] User ${req.session.user.username} attempted to update restricted mobile ${mobileNumber}`);
             continue;
           }
-          console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted mobile ${mobileNumber}`);
+          if (req.session.user.role === 'admin') {
+            console.log(`[${new Date().toISOString()}] Admin ${req.session.user.username} is updating restricted mobile ${mobileNumber}`);
+          } else if (req.session.user.role === 'corporate' && matchesPrefix(mobileNumber, '9123')) {
+            console.log(`[${new Date().toISOString()}] Corporate user ${req.session.user.username} is updating prefix 9123 mobile ${mobileNumber}`);
+          }
         }
 
         // Update the status and optionally category

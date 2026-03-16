@@ -405,6 +405,18 @@
             border-left-color: #f5c6cb;
         }
 
+        .toast-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border-left-color: #ffc107;
+        }
+
+        .toast-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border-left-color: #ffc107;
+        }
+
         @keyframes slideInRightTop {
             from {
                 opacity: 0;
@@ -641,6 +653,12 @@
                             <span>Reset Staff Password</span>
                         </div>
                     </div>
+                </div>
+
+                <!-- Change Password -->
+                <div class="nav-item" onclick="switchTab('account', 'change-password')" style="display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                    <span class="nav-item-icon">🔐</span>
+                    <span>Change Password</span>
                 </div>
 
                 <div class="nav-item">
@@ -917,6 +935,44 @@
                         <span class="spinner"></span>Loading questions...
                     </div>
                     <div id="questionsList"></div>
+                </div>
+            </div>
+
+            <!-- Account Section -->
+            <div id="accountSection" class="form-section">
+                <!-- Change Password Section -->
+                <div id="changePasswordSection" style="display: none; max-width: 420px; margin: 0 auto 32px auto; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(102,126,234,0.10); padding: 36px 32px 32px 32px; border: 1px solid #e0e0e0;">
+                    <div class="header" style="margin-bottom: 18px;">
+                        <h2 style="font-size: 24px; margin-bottom: 6px;">🔐 Change Password</h2>
+                        <p style="font-size: 14px; color: #666;">Update your password to keep your account secure.</p>
+                    </div>
+                    <div id="changePasswordAlert" class="alert"></div>
+                    <form id="changePasswordForm" autocomplete="off">
+                        <div class="form-group">
+                            <label for="currentPassword">Current Password <span style="color: #e74c3c;">*</span></label>
+                            <input type="password" id="currentPassword" required placeholder="Enter your current password" autocomplete="current-password">
+                        </div>
+                        <div class="form-group">
+                            <label for="newPassword">New Password <span style="color: #e74c3c;">*</span></label>
+                            <input type="password" id="newPassword" required placeholder="Enter new password" autocomplete="new-password">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirm Password <span style="color: #e74c3c;">*</span></label>
+                            <input type="password" id="confirmPassword" required placeholder="Re-enter new password" autocomplete="new-password">
+                        </div>
+                        <div class="button-group">
+                            <button type="submit" class="btn-update">Change Password</button>
+                            <button type="reset" class="btn-clear" id="changePasswordClearBtn">Clear</button>
+                        </div>
+                    </form>
+                    <div class="info-box" style="margin-top: 24px; background: #f9fafb; border-radius: 6px; padding: 14px 16px; font-size: 13px; color: #555;">
+                        <strong>ℹ️ Password Requirements:</strong>
+                        <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                            <li>Minimum 6 characters</li>
+                            <li>Must be different from your current password</li>
+                            <li>Both new passwords must match</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
@@ -1304,6 +1360,17 @@
     <div id="toast" class="toast"></div>
 
     <script>
+        // Check for password expiration warning from login
+        window.addEventListener('load', function() {
+            const passwordExpirationWarning = sessionStorage.getItem('passwordExpirationWarning');
+            if (passwordExpirationWarning) {
+                // Display the warning as a toast notification
+                showToast(passwordExpirationWarning, 'warning');
+                // Clear the warning from sessionStorage
+                sessionStorage.removeItem('passwordExpirationWarning');
+            }
+        });
+
         let currentUserRole = 'staff'; // Default to staff, will be updated on login
         let restrictedCategories = []; // Store restricted categories list
         let restrictedStatuses = []; // Store restricted statuses list
@@ -1452,11 +1519,35 @@
                 'bulk': 'bulkSection',
                 'sim': 'simSection',
                 'support': 'supportSection',
+                'account': 'accountSection',
                 'settings': 'settingsSection'
             };
 
-            // Handle settings subtabs
-            if (tab === 'settings' && subtab) {
+            // Handle account subtabs
+            if (tab === 'account' && subtab) {
+                const accountSubtabMap = {
+                    'change-password': 'changePasswordSection'
+                };
+
+                // Show main account section
+                const accountSection = document.getElementById('accountSection');
+                if (accountSection) {
+                    accountSection.classList.add('active');
+                }
+
+                // Hide all account subtabs
+                const accountSubtabs = ['changePasswordSection'];
+                accountSubtabs.forEach(id => {
+                    const elem = document.getElementById(id);
+                    if (elem) elem.style.display = 'none';
+                });
+                
+                // Show the selected subtab
+                if (accountSubtabMap[subtab]) {
+                    const elem = document.getElementById(accountSubtabMap[subtab]);
+                    if (elem) elem.style.display = 'block';
+                }
+            } else if (tab === 'settings' && subtab) {
                 const settingsSubtabMap = {
                     'restricted-prefix': 'settingsRestrictedPrefixSection',
                     'restricted-status': 'settingsRestrictedStatusSection',
@@ -1595,10 +1686,12 @@
                         const isRestrictedCategory = data.data.categoryCode && restrictedCategories.includes(data.data.categoryCode);
                         const isRestrictedStatus = data.data.status && restrictedStatuses.includes(data.data.status.toUpperCase());
                         const isRestrictedPrefixMatch = matchesRestrictedPrefix(data.data.mobileNumber);
+                        const isPrefix9123 = matchesRestrictedPrefix(data.data.mobileNumber) && normalizeNumber(data.data.mobileNumber).startsWith(normalizeNumber('9123'));
                         const hasRestriction = isRestrictedCategory || isRestrictedStatus || isRestrictedPrefixMatch;
                         let freeButtonHTML;
                         if (hasRestriction) {
-                            if (currentUserRole === 'admin') {
+                            // Allow admin and corporate users (corporate only for prefix 9123)
+                            if (currentUserRole === 'admin' || (currentUserRole === 'corporate' && isPrefix9123)) {
                                 freeButtonHTML = `<button onclick="freeMobileStatus('${data.data.mobileNumber}', '${data.data.status || 'N/A'}')" style="background: #ff9800; color: white; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: 600;" title="Free this status">🔓 Free Status</button>`;
                             } else {
                                 freeButtonHTML = '<span style="color: #f44336; font-size: 11px; font-weight: 600;">Admin only</span>';
@@ -1807,6 +1900,63 @@
                 showToast('Error: ' + error.message, 'error');
             }
         });
+
+        // ============ ACCOUNT SECTION - CHANGE PASSWORD ============
+        const changePasswordForm = document.getElementById('changePasswordForm');
+        if (changePasswordForm) {
+            changePasswordForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const currentPassword = document.getElementById('currentPassword').value.trim();
+                const newPassword = document.getElementById('newPassword').value.trim();
+                const confirmPassword = document.getElementById('confirmPassword').value.trim();
+                const alertDiv = document.getElementById('changePasswordAlert');
+                alertDiv.className = 'alert';
+                alertDiv.textContent = '';
+
+                // Validation
+                if (!currentPassword || !newPassword || !confirmPassword) {
+                    showToast('Please fill in all required fields', 'error');
+                    return;
+                }
+
+                if (newPassword.length < 6) {
+                    showToast('New password must be at least 6 characters', 'error');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    showToast('New passwords do not match', 'error');
+                    return;
+                }
+
+                if (currentPassword === newPassword) {
+                    showToast('New password must be different from current password', 'error');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/change-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ currentPassword, newPassword })
+                    });
+                    const data = await response.json();
+                    if (response.ok && data.success) {
+                        showToast(data.message || 'Password changed successfully', 'success');
+                        changePasswordForm.reset();
+                        // Optionally redirect to login or clear the form
+                        setTimeout(() => {
+                            // Optional: Show message that they need to log in again
+                            // window.location.href = '/';
+                        }, 2000);
+                    } else {
+                        showToast(data.message || 'Failed to change password', 'error');
+                    }
+                } catch (error) {
+                    showToast('Error: ' + error.message, 'error');
+                }
+            });
+        }
 
         // ============ RESET STAFF PASSWORD SECTION ============
         const resetStaffPasswordForm = document.getElementById('resetStaffPasswordForm');
