@@ -115,31 +115,12 @@ async function logFailedNumber(connection, mobileNumber, failureReason, username
       return false;
     }
 
-    // Step 1: Get next sequence value
-    console.log(`[${new Date().toISOString()}]    Step 1: Getting next ZAIN_SUPPORT_FAILED_NUM_LOGS_SEQ value...`);
-    let nextId;
-    try {
-      const seqQuery = `SELECT ZAIN_SUPPORT_FAILED_NUM_LOGS_SEQ.NEXTVAL FROM dual`;
-      const seqResult = await connection.execute(seqQuery);
-      nextId = seqResult.rows[0][0];
-      console.log(`[${new Date().toISOString()}]    ✓ Got sequence value: ${nextId}`);
-    } catch (seqErr) {
-      console.error(`[${new Date().toISOString()}]    ✗ Sequence error: ${seqErr.message}`);
-      // Try to create the sequence if it doesn't exist
-      try {
-        console.log(`[${new Date().toISOString()}]    Attempting to create sequence...`);
-        await connection.execute(`CREATE SEQUENCE ZAIN_SUPPORT_FAILED_NUM_LOGS_SEQ START WITH 1 INCREMENT BY 1`);
-        const seqRetry = await connection.execute(`SELECT ZAIN_SUPPORT_FAILED_NUM_LOGS_SEQ.NEXTVAL FROM dual`);
-        nextId = seqRetry.rows[0][0];
-        console.log(`[${new Date().toISOString()}]    ✓ Created sequence and got value: ${nextId}`);
-      } catch (createErr) {
-        console.error(`[${new Date().toISOString()}]    ✗ Could not create sequence: ${createErr.message}`);
-        return false;
-      }
-    }
+    // Generate LOG_ID using timestamp-based approach to avoid sequence permission issues
+    const logId = Math.floor(Date.now() / 1000) * 1000 + Math.floor(Math.random() * 1000);
+    console.log(`[${new Date().toISOString()}]    Generated LOG_ID: ${logId}`);
 
-    // Step 2: Insert the failed record
-    console.log(`[${new Date().toISOString()}]    Step 2: Inserting failed number record...`);
+    // Insert the failed record
+    console.log(`[${new Date().toISOString()}]    Inserting failed number record...`);
     const insertQuery = `
       INSERT INTO ZAIN_SUPPORT_FAILED_NUM_LOGS 
       (LOG_ID, MOBILE_NUMBER, FAILURE_REASON, USERNAME, CREATED_AT)
@@ -147,13 +128,13 @@ async function logFailedNumber(connection, mobileNumber, failureReason, username
     `;
     
     const result = await connection.execute(insertQuery, {
-      logId: nextId,
+      logId: logId,
       mobileNumber: String(mobileNumber || '').trim().substring(0, 50),
       failureReason: String(failureReason || '').trim().substring(0, 500),
       username: String(username || '').trim().substring(0, 50)
     }, { autoCommit: true });
     
-    console.log(`[${new Date().toISOString()}] ✅ SUCCESS: Logged failed number ${mobileNumber} (ID: ${nextId})`);
+    console.log(`[${new Date().toISOString()}] ✅ SUCCESS: Logged failed number ${mobileNumber} (ID: ${logId})`);
     return true;
   } catch (err) {
     console.error(`[${new Date().toISOString()}] ✗ FAILED: logFailedNumber ERROR`);
@@ -177,31 +158,12 @@ async function logFailedSim(connection, simIdentifier, failureReason, username) 
       return false;
     }
 
-    // Step 1: Get next sequence value
-    console.log(`[${new Date().toISOString()}]    Step 1: Getting next ZAIN_SUPPORT_FAILED_SIM_LOGS_SEQ value...`);
-    let nextId;
-    try {
-      const seqQuery = `SELECT ZAIN_SUPPORT_FAILED_SIM_LOGS_SEQ.NEXTVAL FROM dual`;
-      const seqResult = await connection.execute(seqQuery);
-      nextId = seqResult.rows[0][0];
-      console.log(`[${new Date().toISOString()}]    ✓ Got sequence value: ${nextId}`);
-    } catch (seqErr) {
-      console.error(`[${new Date().toISOString()}]    ✗ Sequence error: ${seqErr.message}`);
-      // Try to create the sequence if it doesn't exist
-      try {
-        console.log(`[${new Date().toISOString()}]    Attempting to create sequence...`);
-        await connection.execute(`CREATE SEQUENCE ZAIN_SUPPORT_FAILED_SIM_LOGS_SEQ START WITH 1 INCREMENT BY 1`);
-        const seqRetry = await connection.execute(`SELECT ZAIN_SUPPORT_FAILED_SIM_LOGS_SEQ.NEXTVAL FROM dual`);
-        nextId = seqRetry.rows[0][0];
-        console.log(`[${new Date().toISOString()}]    ✓ Created sequence and got value: ${nextId}`);
-      } catch (createErr) {
-        console.error(`[${new Date().toISOString()}]    ✗ Could not create sequence: ${createErr.message}`);
-        return false;
-      }
-    }
+    // Generate LOG_ID using timestamp-based approach to avoid sequence permission issues
+    const logId = Math.floor(Date.now() / 1000) * 1000 + Math.floor(Math.random() * 1000);
+    console.log(`[${new Date().toISOString()}]    Generated LOG_ID: ${logId}`);
 
-    // Step 2: Insert the failed record
-    console.log(`[${new Date().toISOString()}]    Step 2: Inserting failed SIM record...`);
+    // Insert the failed record
+    console.log(`[${new Date().toISOString()}]    Inserting failed SIM record...`);
     const insertQuery = `
       INSERT INTO ZAIN_SUPPORT_FAILED_SIM_LOGS 
       (LOG_ID, SIM_IDENTIFIER, FAILURE_REASON, USERNAME, CREATED_AT)
@@ -209,13 +171,13 @@ async function logFailedSim(connection, simIdentifier, failureReason, username) 
     `;
     
     const result = await connection.execute(insertQuery, {
-      logId: nextId,
+      logId: logId,
       simIdentifier: String(simIdentifier || '').trim().substring(0, 50),
       failureReason: String(failureReason || '').trim().substring(0, 500),
       username: String(username || '').trim().substring(0, 50)
     }, { autoCommit: true });
     
-    console.log(`[${new Date().toISOString()}] ✅ SUCCESS: Logged failed SIM ${simIdentifier} (ID: ${nextId})`);
+    console.log(`[${new Date().toISOString()}] ✅ SUCCESS: Logged failed SIM ${simIdentifier} (ID: ${logId})`);
     return true;
   } catch (err) {
     console.error(`[${new Date().toISOString()}] ✗ FAILED: logFailedSim ERROR`);
@@ -1039,14 +1001,18 @@ async function logNumberUpdate(connection, mobileNumber, statusBefore, statusAft
       return false;
     }
 
+    // Generate LOG_ID using timestamp-based approach to avoid sequence permission issues
+    const logId = Math.floor(Date.now() / 1000) * 1000 + Math.floor(Math.random() * 1000);
+    
     const logQuery = `
       INSERT INTO ZAINSUPPORTNUMLOGS (LOG_ID, MOBILE_NUMBER, STATUS_BEFORE, STATUS_AFTER, USERNAME, UPDATE_TIME)
-      VALUES (ZAINSUPPORTNUMLOGS_SEQ.NEXTVAL, :mobileNumber, :statusBefore, :statusAfter, :username, SYSDATE)
+      VALUES (:logId, :mobileNumber, :statusBefore, :statusAfter, :username, SYSDATE)
     `;
     
     console.log(`[${new Date().toISOString()}] 📝 Logging number update: ${mobileNumber} (${statusBefore} → ${statusAfter})`);
     
     const result = await connection.execute(logQuery, {
+      logId: logId,
       mobileNumber: String(mobileNumber).trim(),
       statusBefore: String(statusBefore).trim(),
       statusAfter: String(statusAfter).trim(),
@@ -1073,14 +1039,18 @@ async function logSimUpdate(connection, simId, statusBefore, statusAfter, userna
       return false;
     }
 
+    // Generate LOG_ID using timestamp-based approach to avoid sequence permission issues
+    const logId = Math.floor(Date.now() / 1000) * 1000 + Math.floor(Math.random() * 1000);
+    
     const logQuery = `
       INSERT INTO ZAIN_SUPPORT_SIMS_LOGS (LOG_ID, SIM_IDENTIFIER, STATUS_BEFORE, STATUS_AFTER, USERNAME, UPDATE_TIME)
-      VALUES (ZAIN_SUPPORT_SIMS_LOGS_SEQ.NEXTVAL, :simId, :statusBefore, :statusAfter, :username, SYSDATE)
+      VALUES (:logId, :simId, :statusBefore, :statusAfter, :username, SYSDATE)
     `;
     
     console.log(`[${new Date().toISOString()}] 📝 Logging SIM update: ${simId} (${statusBefore} → ${statusAfter})`);
     
     const result = await connection.execute(logQuery, {
+      logId: logId,
       simId: String(simId).trim(),
       statusBefore: String(statusBefore).trim(),
       statusAfter: String(statusAfter).trim(),
