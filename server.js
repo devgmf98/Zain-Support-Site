@@ -383,14 +383,6 @@ async function createLoggingTables() {
         )
       `;
 
-      const createNumLogsSeqQuery = `CREATE SEQUENCE ZAINSUPPORTNUMLOGS_SEQ START WITH 1 INCREMENT BY 1`;
-      
-      try {
-        await connection.execute(createNumLogsSeqQuery);
-      } catch (err) {
-        // Sequence might already exist
-      }
-
       await connection.execute(createNumLogsQuery);
       console.log('[' + new Date().toISOString() + '] ✓ ZAINSUPPORTNUMLOGS table created successfully');
     }
@@ -412,14 +404,6 @@ async function createLoggingTables() {
         )
       `;
 
-      const createSimLogsSeqQuery = `CREATE SEQUENCE ZAIN_SUPPORT_SIMS_LOGS_SEQ START WITH 1 INCREMENT BY 1`;
-      
-      try {
-        await connection.execute(createSimLogsSeqQuery);
-      } catch (err) {
-        // Sequence might already exist
-      }
-
       await connection.execute(createSimLogsQuery);
       console.log('[' + new Date().toISOString() + '] ✓ ZAIN_SUPPORT_SIMS_LOGS table created successfully');
     }
@@ -430,17 +414,8 @@ async function createLoggingTables() {
     
     if (failedNumLogsCheckResult.rows.length === 0) {
       console.log('[' + new Date().toISOString() + '] Creating ZAIN_SUPPORT_FAILED_NUM_LOGS table...');
-      
-      // Create sequence first
-      const createFailedNumLogsSeqQuery = `CREATE SEQUENCE ZAIN_SUPPORT_FAILED_NUM_LOGS_SEQ START WITH 1 INCREMENT BY 1`;
-      try {
-        await connection.execute(createFailedNumLogsSeqQuery);
-        console.log('[' + new Date().toISOString() + '] ✓ Created ZAIN_SUPPORT_FAILED_NUM_LOGS_SEQ');
-      } catch (seqErr) {
-        console.log('[' + new Date().toISOString() + '] Sequence might already exist: ' + seqErr.message);
-      }
 
-      // Create table with proper sequence binding
+      // Create table
       const createFailedNumLogsQuery = `
         CREATE TABLE ZAIN_SUPPORT_FAILED_NUM_LOGS (
           LOG_ID NUMBER PRIMARY KEY,
@@ -454,24 +429,6 @@ async function createLoggingTables() {
       try {
         await connection.execute(createFailedNumLogsQuery);
         console.log('[' + new Date().toISOString() + '] ✓ ZAIN_SUPPORT_FAILED_NUM_LOGS table created successfully');
-        
-        // Create trigger for auto-increment
-        const triggerQuery = `
-          CREATE OR REPLACE TRIGGER ZAIN_SUPPORT_FAILED_NUM_LOGS_TRG
-          BEFORE INSERT ON ZAIN_SUPPORT_FAILED_NUM_LOGS
-          FOR EACH ROW
-          BEGIN
-            IF :new.LOG_ID IS NULL THEN
-              SELECT ZAIN_SUPPORT_FAILED_NUM_LOGS_SEQ.NEXTVAL INTO :new.LOG_ID FROM dual;
-            END IF;
-          END;
-        `;
-        try {
-          await connection.execute(triggerQuery);
-          console.log('[' + new Date().toISOString() + '] ✓ Created auto-increment trigger for ZAIN_SUPPORT_FAILED_NUM_LOGS');
-        } catch (trigErr) {
-          console.log('[' + new Date().toISOString() + '] Could not create trigger: ' + trigErr.message);
-        }
       } catch (tableErr) {
         console.error('[' + new Date().toISOString() + '] Error creating ZAIN_SUPPORT_FAILED_NUM_LOGS table:', tableErr.message);
       }
@@ -485,17 +442,8 @@ async function createLoggingTables() {
     
     if (failedSimLogsCheckResult.rows.length === 0) {
       console.log('[' + new Date().toISOString() + '] Creating ZAIN_SUPPORT_FAILED_SIM_LOGS table...');
-      
-      // Create sequence first
-      const createFailedSimLogsSeqQuery = `CREATE SEQUENCE ZAIN_SUPPORT_FAILED_SIM_LOGS_SEQ START WITH 1 INCREMENT BY 1`;
-      try {
-        await connection.execute(createFailedSimLogsSeqQuery);
-        console.log('[' + new Date().toISOString() + '] ✓ Created ZAIN_SUPPORT_FAILED_SIM_LOGS_SEQ');
-      } catch (seqErr) {
-        console.log('[' + new Date().toISOString() + '] Sequence might already exist: ' + seqErr.message);
-      }
 
-      // Create table with proper sequence binding
+      // Create table
       const createFailedSimLogsQuery = `
         CREATE TABLE ZAIN_SUPPORT_FAILED_SIM_LOGS (
           LOG_ID NUMBER PRIMARY KEY,
@@ -509,24 +457,6 @@ async function createLoggingTables() {
       try {
         await connection.execute(createFailedSimLogsQuery);
         console.log('[' + new Date().toISOString() + '] ✓ ZAIN_SUPPORT_FAILED_SIM_LOGS table created successfully');
-        
-        // Create trigger for auto-increment
-        const triggerQuery = `
-          CREATE OR REPLACE TRIGGER ZAIN_SUPPORT_FAILED_SIM_LOGS_TRG
-          BEFORE INSERT ON ZAIN_SUPPORT_FAILED_SIM_LOGS
-          FOR EACH ROW
-          BEGIN
-            IF :new.LOG_ID IS NULL THEN
-              SELECT ZAIN_SUPPORT_FAILED_SIM_LOGS_SEQ.NEXTVAL INTO :new.LOG_ID FROM dual;
-            END IF;
-          END;
-        `;
-        try {
-          await connection.execute(triggerQuery);
-          console.log('[' + new Date().toISOString() + '] ✓ Created auto-increment trigger for ZAIN_SUPPORT_FAILED_SIM_LOGS');
-        } catch (trigErr) {
-          console.log('[' + new Date().toISOString() + '] Could not create trigger: ' + trigErr.message);
-        }
       } catch (tableErr) {
         console.error('[' + new Date().toISOString() + '] Error creating ZAIN_SUPPORT_FAILED_SIM_LOGS table:', tableErr.message);
       }
