@@ -735,21 +735,21 @@
             </div>
 
             <!-- Resent Updated Mobile Numbers -->
-            <div id="adminOnlyResentMobile" style="margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
+            <div id="adminOnlyResentMobile" style="display: none; margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
                 <h4 style="color: #0084d4; margin-bottom: 10px;">📱 Resent Updated Mobile Numbers</h4>
                 <div id="resentMobileTable" style="overflow-x: auto;"></div>
                 <div id="resentMobilePagination" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e0e0e0; text-align: end;"></div>
             </div>
 
             <!-- Resent Updated Serials -->
-            <div id="adminOnlyResentSerials" style="margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
+            <div id="adminOnlyResentSerials" style="display: none; margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
                 <h4 style="color: #0084d4; margin-bottom: 10px;">💳 Resent Updated Serials</h4>
                 <div id="resentSerialTable" style="overflow-x: auto;"></div>
                 <div id="resentSerialPagination" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e0e0e0; text-align: end;"></div>
             </div>
 
             <!-- Daily Mobile Number Updates Card -->
-            <div id="adminOnlyDailyMobile" style="margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
+            <div id="adminOnlyDailyMobile" style="display: none; margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
                 <h4 style="color: #0084d4; margin-bottom: 10px;">📱 Daily Mobile Number Updates</h4>
                 <div style="overflow-x: auto;">
                     <canvas id="numbersChart" style="width:100%;max-width:100%;height:300px;"></canvas>
@@ -757,7 +757,7 @@
             </div>
 
             <!-- Daily SIM Updates Card -->
-            <div id="adminOnlyDailySim" style="margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
+            <div id="adminOnlyDailySim" style="display: none; margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
                 <h4 style="color: #0084d4; margin-bottom: 10px;">🔄 Daily SIM Updates</h4>
                 <div style="overflow-x: auto;">
                     <canvas id="simsChart" style="width:100%;max-width:100%;height:300px;"></canvas>
@@ -765,7 +765,7 @@
             </div>
 
             <!-- Report Generator -->
-            <div id="adminOnlyReportGenerator" style="margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
+            <div id="adminOnlyReportGenerator" style="display: none; margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
                 <h4 style="color: #0084d4; margin-bottom: 10px;">📋 Report Generator</h4>
                 <p style="color: #666; margin-bottom: 20px;">Generate reports for mobile numbers, SIM cards, and failed updates</p>
 
@@ -993,12 +993,9 @@
             // Load real data from API on page load
             loadRecentMobiles();
             loadRecentSims();
-            // Hide admin sections if not admin
-            var isAdmin = window.isAdmin !== undefined ? window.isAdmin : true;
-            if (!isAdmin) {
-                var adminSections = document.getElementById('adminSections');
-                if (adminSections) adminSections.style.display = 'none';
-            }
+            // Always hide admin sections initially - they will be shown by displayUserInfo if user is admin
+            var adminSections = document.getElementById('adminSections');
+            if (adminSections) adminSections.style.display = 'none';
             </script>
 
             <!-- View NumberDetails Section -->
@@ -2027,6 +2024,9 @@
                 // Show category fields for admins
                 document.getElementById('categoryFieldGroup').style.display = 'block';
                 document.getElementById('bulkCategoryFieldGroup').style.display = 'block';
+                // Show main admin sections container
+                const mainAdminSections = document.getElementById('adminSections');
+                if (mainAdminSections) mainAdminSections.style.display = 'block';
                 // Show admin-only sections
                 const adminOnlySections = ['adminOnlyResentMobile', 'adminOnlyResentSerials', 'adminOnlyDailyMobile', 'adminOnlyDailySim', 'adminOnlyReportGenerator'];
                 adminOnlySections.forEach(id => {
@@ -2038,6 +2038,9 @@
             } else {
                 settingsDropdown.style.display = 'none';
                 dashboardNav.style.display = 'none';
+                // Hide main admin sections container
+                const mainAdminSections = document.getElementById('adminSections');
+                if (mainAdminSections) mainAdminSections.style.display = 'none';
                 // Hide admin-only sections for non-admins
                 const adminOnlySections = ['adminOnlyResentMobile', 'adminOnlyResentSerials', 'adminOnlyDailyMobile', 'adminOnlyDailySim', 'adminOnlyReportGenerator'];
                 adminOnlySections.forEach(id => {
@@ -2369,7 +2372,11 @@
                 if (response.ok) {
                     showToast('Status freed successfully. Category preserved: ' + (data.categoryPreserved || 'N/A'), 'success');
                     // Refresh the view to show updated status
-                    document.querySelector('[onclick*="viewForm"]')?.click?.() || viewForm?.dispatchEvent(new Event('submit'));
+                    const mobileNumberInput = document.getElementById('searchNumber');
+                    if (mobileNumberInput && mobileNumberInput.value.trim()) {
+                        // Refresh by re-submitting the view form with the current mobile number
+                        viewForm?.dispatchEvent(new Event('submit'));
+                    }
                 } else {
                     showToast(data.message || 'Error freeing category', 'error');
                 }
