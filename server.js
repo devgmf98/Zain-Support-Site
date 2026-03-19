@@ -1034,41 +1034,69 @@ async function ensureDefaultUsers() {
 
 async function logNumberUpdate(connection, mobileNumber, statusBefore, statusAfter, username) {
   try {
+    if (!connection) {
+      console.error(`[${new Date().toISOString()}] ✗ ERROR: No connection available for logNumberUpdate`);
+      return false;
+    }
+
     const logQuery = `
       INSERT INTO ZAINSUPPORTNUMLOGS (LOG_ID, MOBILE_NUMBER, STATUS_BEFORE, STATUS_AFTER, USERNAME, UPDATE_TIME)
       VALUES (ZAINSUPPORTNUMLOGS_SEQ.NEXTVAL, :mobileNumber, :statusBefore, :statusAfter, :username, SYSDATE)
     `;
     
-    await connection.execute(logQuery, {
-      mobileNumber: mobileNumber,
-      statusBefore: statusBefore,
-      statusAfter: statusAfter,
-      username: username
+    console.log(`[${new Date().toISOString()}] 📝 Logging number update: ${mobileNumber} (${statusBefore} → ${statusAfter})`);
+    
+    const result = await connection.execute(logQuery, {
+      mobileNumber: String(mobileNumber).trim(),
+      statusBefore: String(statusBefore).trim(),
+      statusAfter: String(statusAfter).trim(),
+      username: String(username).trim()
     }, { autoCommit: true });
     
-    console.log(`[${new Date().toISOString()}] Logged number update: ${mobileNumber} (${statusBefore} → ${statusAfter}) by ${username}`);
+    console.log(`[${new Date().toISOString()}] ✅ Logged number update: ${mobileNumber} (${statusBefore} → ${statusAfter}) by ${username}`);
+    return true;
   } catch (err) {
-    console.error(`[${new Date().toISOString()}] Error logging number update:`, err.message);
+    console.error(`[${new Date().toISOString()}] ✗ FAILED: logNumberUpdate ERROR`);
+    console.error(`[${new Date().toISOString()}]    Mobile: ${mobileNumber}`);
+    console.error(`[${new Date().toISOString()}]    Status: ${statusBefore} → ${statusAfter}`);
+    console.error(`[${new Date().toISOString()}]    User: ${username}`);
+    console.error(`[${new Date().toISOString()}]    Error: ${err.message}`);
+    console.error(`[${new Date().toISOString()}]    Code: ${err.errorNum || 'N/A'}`);
+    return false;
   }
 }
 
 async function logSimUpdate(connection, simId, statusBefore, statusAfter, username) {
   try {
+    if (!connection) {
+      console.error(`[${new Date().toISOString()}] ✗ ERROR: No connection available for logSimUpdate`);
+      return false;
+    }
+
     const logQuery = `
       INSERT INTO ZAIN_SUPPORT_SIMS_LOGS (LOG_ID, SIM_IDENTIFIER, STATUS_BEFORE, STATUS_AFTER, USERNAME, UPDATE_TIME)
       VALUES (ZAIN_SUPPORT_SIMS_LOGS_SEQ.NEXTVAL, :simId, :statusBefore, :statusAfter, :username, SYSDATE)
     `;
     
-    await connection.execute(logQuery, {
-      simId: simId,
-      statusBefore: statusBefore,
-      statusAfter: statusAfter,
-      username: username
+    console.log(`[${new Date().toISOString()}] 📝 Logging SIM update: ${simId} (${statusBefore} → ${statusAfter})`);
+    
+    const result = await connection.execute(logQuery, {
+      simId: String(simId).trim(),
+      statusBefore: String(statusBefore).trim(),
+      statusAfter: String(statusAfter).trim(),
+      username: String(username).trim()
     }, { autoCommit: true });
     
-    console.log(`[${new Date().toISOString()}] Logged SIM update: ${simId} (${statusBefore} → ${statusAfter}) by ${username}`);
+    console.log(`[${new Date().toISOString()}] ✅ Logged SIM update: ${simId} (${statusBefore} → ${statusAfter}) by ${username}`);
+    return true;
   } catch (err) {
-    console.error(`[${new Date().toISOString()}] Error logging SIM update:`, err.message);
+    console.error(`[${new Date().toISOString()}] ✗ FAILED: logSimUpdate ERROR`);
+    console.error(`[${new Date().toISOString()}]    SIM: ${simId}`);
+    console.error(`[${new Date().toISOString()}]    Status: ${statusBefore} → ${statusAfter}`);
+    console.error(`[${new Date().toISOString()}]    User: ${username}`);
+    console.error(`[${new Date().toISOString()}]    Error: ${err.message}`);
+    console.error(`[${new Date().toISOString()}]    Code: ${err.errorNum || 'N/A'}`);
+    return false;
   }
 }
 
