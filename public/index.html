@@ -2856,9 +2856,15 @@
                     return;
                 }
 
-                // Convert datetime-local to ISO format for API
-                const startDate = new Date(startDateInput).toISOString();
-                const endDate = new Date(endDateInput).toISOString();
+                // Convert datetime-local to ISO format with specific times
+                // From date: 00:00:00, To date: 23:59:59
+                const startDateObj = new Date(startDateInput);
+                startDateObj.setHours(0, 0, 0, 0);
+                const startDate = startDateObj.toISOString();
+
+                const endDateObj = new Date(endDateInput);
+                endDateObj.setHours(23, 59, 59, 0);
+                const endDate = endDateObj.toISOString();
 
                 loadingSpinner.style.display = 'block';
 
