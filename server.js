@@ -4215,9 +4215,14 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
 
     connection = await connectionPool.getConnection();
 
-    // Format dates for the SQL query
-    const startDateFormatted = new Date(startDate).toISOString().split('T')[0];
-    const endDateFormatted = new Date(endDate).toISOString().split('T')[0];
+    // Format dates with time component for the SQL query
+    // startDate/endDate from frontend are ISO strings: 2026-03-24T00:00:00.000Z and 2026-03-24T23:59:59.000Z
+    const startDateObj = new Date(startDate);
+    const endDateObj = new Date(endDate);
+    
+    // Convert to format: "2026-03-24 00:00:00" or "2026-03-24 23:59:59"
+    const startDateFormatted = startDateObj.toISOString().replace('Z', '').slice(0, 19).replace('T', ' ');
+    const endDateFormatted = endDateObj.toISOString().replace('Z', '').slice(0, 19).replace('T', ' ');
 
     const query = `
       SELECT
@@ -4270,8 +4275,8 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
       JOIN CB_ACCOUNT_MASTER b ON a.ACCOUNT_CODE_N = b.ACCOUNT_CODE_N
       WHERE a.ACCOUNT_CODE_N = :accountCode
       AND a.CALL_DATE_TIME_DT BETWEEN 
-        TO_DATE(:startDate, 'YYYY-MM-DD') 
-      AND TO_DATE(:endDate, 'YYYY-MM-DD') + 1
+        TO_TIMESTAMP(:startDate, 'YYYY-MM-DD HH24:MI:SS') 
+      AND TO_TIMESTAMP(:endDate, 'YYYY-MM-DD HH24:MI:SS')
       ORDER BY a.CALL_DATE_TIME_DT ASC
     `;
 
