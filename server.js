@@ -4203,14 +4203,14 @@ app.post('/api/unblock-starter-pack-number', requireAuth, async (req, res) => {
   }
 });
 
-// API Route to generate Account CDRs in Excel format
+// API Route to generate CDRs in Excel format (by Account Code or Service Identifier)
 app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
-  const { accountCode, startDate, endDate } = req.body;
+  const { searchType, searchValue, startDate, endDate } = req.body;
   let connection;
 
   try {
-    if (!accountCode || !startDate || !endDate) {
-      return res.status(400).json({ success: false, message: 'Account code and date range are required' });
+    if (!searchType || !searchValue || !startDate || !endDate) {
+      return res.status(400).json({ success: false, message: 'Search criteria and date range are required' });
     }
 
     connection = await connectionPool.getConnection();
@@ -4218,6 +4218,23 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
     // Dates are already formatted as "2026-03-01 00:00:00" and "2026-03-01 23:59:59" from frontend
     const startDateFormatted = startDate;
     const endDateFormatted = endDate;
+
+    // Build WHERE clause based on search type
+    let whereClause = 'WHERE a.CALL_DATE_TIME_DT BETWEEN TO_DATE(:startDate, \'YYYY-MM-DD HH24:MI:SS\') AND TO_DATE(:endDate, \'YYYY-MM-DD HH24:MI:SS\')';
+    let queryParams = {
+      startDate: startDateFormatted,
+      endDate: endDateFormatted
+    };
+
+    if (searchType === 'accountCode') {
+      whereClause += ' AND a.ACCOUNT_CODE_N = :searchValue';
+      queryParams.searchValue = searchValue;
+    } else if (searchType === 'serviceIdentifier') {
+      whereClause += ' AND a.SERVICE_IDENTIFIER_V = :searchValue';
+      queryParams.searchValue = searchValue;
+    } else {
+      return res.status(400).json({ success: false, message: 'Invalid search type' });
+    }
 
     const query = `
       SELECT
@@ -4268,21 +4285,14 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
         b.CURRENCY_CODE_V AS CURRENCY
       FROM CB_POSTPAID_UPLOAD_ALL_CDRS a
       JOIN CB_ACCOUNT_MASTER b ON a.ACCOUNT_CODE_N = b.ACCOUNT_CODE_N
-      WHERE a.ACCOUNT_CODE_N = :accountCode
-      AND a.CALL_DATE_TIME_DT BETWEEN 
-        TO_DATE(:startDate, 'YYYY-MM-DD HH24:MI:SS') 
-      AND TO_DATE(:endDate, 'YYYY-MM-DD HH24:MI:SS')
+      ${whereClause}
       ORDER BY a.CALL_DATE_TIME_DT ASC
     `;
 
-    const result = await connection.execute(query, {
-      accountCode: accountCode,
-      startDate: startDateFormatted,
-      endDate: endDateFormatted
-    });
+    const result = await connection.execute(query, queryParams);
 
     if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'No CDR records found for the specified account and date range' });
+      return res.status(404).json({ success: false, message: 'No CDR records found for the specified search criteria and date range' });
     }
 
     // Create Excel workbook

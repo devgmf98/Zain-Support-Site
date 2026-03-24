@@ -1318,11 +1318,19 @@
 
                 <form id="generateCdrForm">
                     <div class="form-group">
-                        <label for="cdrAccountCode">Account Code *</label>
+                        <label for="cdrSearchType">Search By *</label>
+                        <select id="cdrSearchType" required>
+                            <option value="accountCode">Account Code</option>
+                            <option value="serviceIdentifier">Service Identifier (Number)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cdrSearchValue">Account Code / Number *</label>
                         <input 
                             type="text" 
-                            id="cdrAccountCode" 
-                            placeholder="Enter account code (e.g., 6655907)"
+                            id="cdrSearchValue" 
+                            placeholder="Enter account code or service identifier"
                             required
                         >
                     </div>
@@ -2842,7 +2850,8 @@
         if (generateCdrForm) {
             generateCdrForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                const accountCode = document.getElementById('cdrAccountCode').value.trim();
+                const searchType = document.getElementById('cdrSearchType').value;
+                const searchValue = document.getElementById('cdrSearchValue').value.trim();
                 const startDateInput = document.getElementById('cdrStartDate').value;
                 const endDateInput = document.getElementById('cdrEndDate').value;
                 const alertDiv = document.getElementById('cdrMessageAlert');
@@ -2851,7 +2860,7 @@
                 alertDiv.textContent = '';
                 alertDiv.className = 'alert';
 
-                if (!accountCode || !startDateInput || !endDateInput) {
+                if (!searchValue || !startDateInput || !endDateInput) {
                     showToast('Please fill in all fields', 'error');
                     return;
                 }
@@ -2868,7 +2877,8 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            accountCode: accountCode,
+                            searchType: searchType,
+                            searchValue: searchValue,
                             startDate: startDate,
                             endDate: endDate
                         })
@@ -2880,7 +2890,7 @@
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = `CDR_${accountCode}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                        a.download = `CDR_${searchValue}_${new Date().toISOString().split('T')[0]}.xlsx`;
                         document.body.appendChild(a);
                         a.click();
                         window.URL.revokeObjectURL(url);
