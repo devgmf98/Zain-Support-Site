@@ -4322,10 +4322,10 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
 
     // Send as file
     res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="CDR_${accountCode}_${startDateFormatted}_to_${endDateFormatted}.xlsx"`);
+    res.setHeader('Content-Disposition', `attachment; filename="CDR_${searchValue}_${startDateFormatted}_to_${endDateFormatted}.xlsx"`);
     res.send(buffer);
 
-    console.log(`[${new Date().toISOString()}] CDR report generated for account ${accountCode} by ${req.session.user.username}`);
+    console.log(`[${new Date().toISOString()}] CDR report generated for ${searchType === 'accountCode' ? 'account' : 'service'} ${searchValue} by ${req.session.user.username}`);
 
   } catch (err) {
     console.error('[' + new Date().toISOString() + '] Error generating CDR report:', err.message);
