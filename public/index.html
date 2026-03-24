@@ -2307,7 +2307,11 @@
         }
 
         function switchTab(tab, subtab = null) {
-            document.querySelectorAll('.form-section').forEach(s => s.classList.remove('active'));
+            // Hide ALL form sections first
+            document.querySelectorAll('.form-section').forEach(s => {
+                s.classList.remove('active');
+                s.style.display = 'none';
+            });
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
 
             const adminOnlySectionsIds = ['adminOnlyResentMobile', 'adminOnlyResentSerials', 'adminOnlyDailyMobile', 'adminOnlyDailySim', 'adminOnlyReportGenerator'];
@@ -2317,10 +2321,6 @@
                 const elem = document.getElementById(id);
                 if (elem) elem.style.display = 'none';
             });
-
-            // Always hide Generate CDR section to ensure it only shows on its tab
-            const generateCdrSection = document.getElementById('generateCdrSection');
-            if (generateCdrSection) generateCdrSection.style.display = 'none';
 
             const sectionMap = {
                 'dashboard': 'dashboardSection',
@@ -2429,21 +2429,6 @@
                         const elem = document.getElementById(id);
                         if (elem) elem.style.display = 'block';
                     });
-                }
-
-                // Show View Number Details when on view tab
-                if (tab === 'view') {
-                    const viewSection = document.getElementById('viewSection');
-                    if (viewSection) viewSection.style.display = 'block';
-                }
-
-                // Show Generate CDR section and hide View Number Details when opening Generate CDR tab
-                if (tab === 'generateCdr') {
-                    const cdrSection = document.getElementById('generateCdrSection');
-                    if (cdrSection) cdrSection.style.display = 'block';
-                    
-                    const viewSection = document.getElementById('viewSection');
-                    if (viewSection) viewSection.style.display = 'none';
                 }
                 
                 // Load all settings data if opening main settings tab
