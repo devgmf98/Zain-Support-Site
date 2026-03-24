@@ -2318,6 +2318,10 @@
                 if (elem) elem.style.display = 'none';
             });
 
+            // Always hide Generate CDR section to ensure it only shows on its tab
+            const generateCdrSection = document.getElementById('generateCdrSection');
+            if (generateCdrSection) generateCdrSection.style.display = 'none';
+
             const sectionMap = {
                 'dashboard': 'dashboardSection',
                 'view': 'viewSection',
@@ -2423,8 +2427,11 @@
                     });
                 }
 
-                // Hide View Number Details section when opening Generate CDR tab
+                // Show Generate CDR section and hide View Number Details when opening Generate CDR tab
                 if (tab === 'generateCdr') {
+                    const cdrSection = document.getElementById('generateCdrSection');
+                    if (cdrSection) cdrSection.style.display = 'block';
+                    
                     const viewSection = document.getElementById('viewSection');
                     if (viewSection) viewSection.style.display = 'none';
                 }
