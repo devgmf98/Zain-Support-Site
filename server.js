@@ -4205,6 +4205,14 @@ app.post('/api/unblock-starter-pack-number', requireAuth, async (req, res) => {
 
 // API Route to generate CDRs in Excel format (by Account Code or Service Identifier)
 app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
+  // Check if user is admin or corporate
+  if (req.session.user.role !== 'admin' && req.session.user.role !== 'corporate') {
+    return res.status(403).json({
+      success: false,
+      message: 'Only admin and corporate users can generate CDR reports'
+    });
+  }
+
   const { searchType, searchValue, startDate, endDate } = req.body;
   let connection;
 

@@ -2214,8 +2214,30 @@
                     const elem = document.getElementById(id);
                     if (elem) elem.style.display = 'block';
                 });
+                // Show CDR section for admin and corporate users
+                const generateCdrSection = document.getElementById('generateCdrSection');
+                if (generateCdrSection) generateCdrSection.style.display = 'block';
                 // Show dashboard as the main page for admins
                 switchTab('dashboard');
+            } else if (user.role === 'corporate') {
+                settingsDropdown.style.display = 'none';
+                dashboardNav.style.display = 'none';
+                // Hide mobile nav (Update Number Status) for non-admins
+                document.getElementById('mobileNav').style.display = 'none';
+                // Hide main admin sections container
+                const mainAdminSections = document.getElementById('adminSections');
+                if (mainAdminSections) mainAdminSections.style.display = 'none';
+                // Hide admin-only sections for non-admins
+                const adminOnlySections = ['adminOnlyResentMobile', 'adminOnlyResentSerials', 'adminOnlyDailyMobile', 'adminOnlyDailySim', 'adminOnlyReportGenerator'];
+                adminOnlySections.forEach(id => {
+                    const elem = document.getElementById(id);
+                    if (elem) elem.style.display = 'none';
+                });
+                // Show CDR section for corporate users
+                const generateCdrSection = document.getElementById('generateCdrSection');
+                if (generateCdrSection) generateCdrSection.style.display = 'block';
+                // Show view details as the main page for corporate users
+                switchTab('view');
             } else {
                 settingsDropdown.style.display = 'none';
                 dashboardNav.style.display = 'none';
@@ -2230,6 +2252,9 @@
                     const elem = document.getElementById(id);
                     if (elem) elem.style.display = 'none';
                 });
+                // Hide CDR section for other roles
+                const generateCdrSection = document.getElementById('generateCdrSection');
+                if (generateCdrSection) generateCdrSection.style.display = 'none';
                 // Show view details as the main page for non-admins
                 switchTab('view');
             }
