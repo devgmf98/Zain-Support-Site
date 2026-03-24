@@ -4278,7 +4278,7 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
           WHEN a.CALLED_CALLING_NUMBER_V LIKE '0021191%' THEN 'On Net South-Zain'
           WHEN a.CALLED_CALLING_NUMBER_V LIKE '0021192%' THEN 'Off Net South-Zain'
           WHEN a.CALLED_CALLING_NUMBER_V LIKE '0021198%' THEN 'Off Net South-Zain'
-          ELSE 'International'
+          ELSE 'Any Destination'
         END AS DESTINATIONPARTYLOCATION,
         a.DATA_VOLUME_UPLOADED_N / 1024 / 1024 AS DATA_USAGE,
         a.charge_amount_n / 10000 AS COST,
