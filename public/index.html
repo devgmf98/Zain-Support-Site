@@ -2422,6 +2422,12 @@
                         if (elem) elem.style.display = 'block';
                     });
                 }
+
+                // Hide View Number Details section when opening Generate CDR tab
+                if (tab === 'generateCdr') {
+                    const viewSection = document.getElementById('viewSection');
+                    if (viewSection) viewSection.style.display = 'none';
+                }
                 
                 // Load all settings data if opening main settings tab
                 if (tab === 'settings') {
