@@ -626,7 +626,7 @@
                     <span class="nav-item-icon">🔓</span>
                     <span>Unblock Starter Pack Number</span>
                 </div>
-                <div class="nav-item" onclick="switchTab('generateCdr')">
+                <div class="nav-item" onclick="switchTab('generateCdr')" id="generateCdrNav" style="display: none;">
                     <span class="nav-item-icon">📊</span>
                     <span>Generate Account CDRs (Excel)</span>
                 </div>
@@ -2214,9 +2214,11 @@
                     const elem = document.getElementById(id);
                     if (elem) elem.style.display = 'block';
                 });
-                // Show CDR section for admin and corporate users
+                // Show CDR section and nav for admin users
                 const generateCdrSection = document.getElementById('generateCdrSection');
                 if (generateCdrSection) generateCdrSection.style.display = 'block';
+                const generateCdrNav = document.getElementById('generateCdrNav');
+                if (generateCdrNav) generateCdrNav.style.display = 'flex';
                 // Show dashboard as the main page for admins
                 switchTab('dashboard');
             } else if (user.role === 'corporate') {
@@ -2233,9 +2235,11 @@
                     const elem = document.getElementById(id);
                     if (elem) elem.style.display = 'none';
                 });
-                // Show CDR section for corporate users
+                // Show CDR section and nav for corporate users
                 const generateCdrSection = document.getElementById('generateCdrSection');
                 if (generateCdrSection) generateCdrSection.style.display = 'block';
+                const generateCdrNav = document.getElementById('generateCdrNav');
+                if (generateCdrNav) generateCdrNav.style.display = 'flex';
                 // Show view details as the main page for corporate users
                 switchTab('view');
             } else {
@@ -2252,9 +2256,11 @@
                     const elem = document.getElementById(id);
                     if (elem) elem.style.display = 'none';
                 });
-                // Hide CDR section for other roles
+                // Hide CDR section and nav for other roles
                 const generateCdrSection = document.getElementById('generateCdrSection');
                 if (generateCdrSection) generateCdrSection.style.display = 'none';
+                const generateCdrNav = document.getElementById('generateCdrNav');
+                if (generateCdrNav) generateCdrNav.style.display = 'none';
                 // Show view details as the main page for non-admins
                 switchTab('view');
             }
