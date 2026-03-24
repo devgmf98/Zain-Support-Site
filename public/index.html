@@ -304,6 +304,18 @@
             font-family: 'Courier New', monospace;
         }
 
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
         .button-group {
             display: flex;
             gap: 12px;
@@ -1335,22 +1347,24 @@
                         >
                     </div>
 
-                    <div class="form-group">
-                        <label for="cdrStartDate">From Date * (00:00:00)</label>
-                        <input 
-                            type="date" 
-                            id="cdrStartDate" 
-                            required
-                        >
-                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="cdrStartDate">From Date * (00:00:00)</label>
+                            <input 
+                                type="date" 
+                                id="cdrStartDate" 
+                                required
+                            >
+                        </div>
 
-                    <div class="form-group">
-                        <label for="cdrEndDate">To Date * (23:59:59)</label>
-                        <input 
-                            type="date" 
-                            id="cdrEndDate" 
-                            required
-                        >
+                        <div class="form-group">
+                            <label for="cdrEndDate">To Date * (23:59:59)</label>
+                            <input 
+                                type="date" 
+                                id="cdrEndDate" 
+                                required
+                            >
+                        </div>
                     </div>
 
                     <div class="button-group">
