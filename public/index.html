@@ -2414,7 +2414,11 @@
                     loadEmailRecipients();
                 }
             } else if (sectionMap[tab]) {
-                document.getElementById(sectionMap[tab]).classList.add('active');
+                const targetSection = document.getElementById(sectionMap[tab]);
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                    targetSection.style.display = 'block';
+                }
                 if (event && event.target.closest('.nav-item')) {
                     event.target.closest('.nav-item').classList.add('active');
                 }
@@ -2425,6 +2429,12 @@
                         const elem = document.getElementById(id);
                         if (elem) elem.style.display = 'block';
                     });
+                }
+
+                // Show View Number Details when on view tab
+                if (tab === 'view') {
+                    const viewSection = document.getElementById('viewSection');
+                    if (viewSection) viewSection.style.display = 'block';
                 }
 
                 // Show Generate CDR section and hide View Number Details when opening Generate CDR tab
