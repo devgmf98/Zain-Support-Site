@@ -55,9 +55,9 @@ function requireAuth(req, res, next) {
 
 // Oracle Database Configuration
 const dbConfig = {
-  user: process.env.DB_USER || 'CBS_DB_OPSUPP',
-  password: process.env.DB_PASSWORD || 'CBS_DB_OPSUPP',
-  connectString: `${process.env.DB_HOST || '172.168.101.238'}:${process.env.DB_PORT || 1521}/${process.env.DB_SERVICE || 'PDB1'}`
+  user: process.env.DB_USER || 'CBS_VIEW',
+  password: process.env.DB_PASSWORD || 'CBS_VIEW',
+  connectString: `${process.env.DB_HOST || '172.168.101.103'}:${process.env.DB_PORT || 1521}/${process.env.DB_SERVICE || 'ZSSUAT'}`
 };
 
 // Email Configuration
@@ -585,26 +585,25 @@ async function createLoggingTables() {
         )
       `;
 
-      const createSettingsSeqQuery = `CREATE SEQUENCE APP_SETTINGS_SEQ START WITH 1 INCREMENT BY 1`;
-      
-      try {
-        await connection.execute(createSettingsSeqQuery);
-      } catch (err) {
-        // Sequence might already exist
-      }
 
       await connection.execute(createSettingsQuery);
       console.log('[' + new Date().toISOString() + '] ✓ APP_SETTINGS table created successfully');
 
       // Insert default settings
+      // Manually increment SETTING_ID
+      const getMaxIdQuery = `SELECT NVL(MAX(SETTING_ID), 0) FROM APP_SETTINGS`;
+      let maxIdResult = await connection.execute(getMaxIdQuery);
+      let nextId = (maxIdResult.rows[0][0] || 0) + 1;
+
       const insertSettingQuery = `
         INSERT INTO APP_SETTINGS (SETTING_ID, SETTING_KEY, SETTING_VALUE, SETTING_TYPE, DESCRIPTION, UPDATED_BY)
-        VALUES (APP_SETTINGS_SEQ.NEXTVAL, :settingKey, :settingValue, :settingType, :description, 'system')
+        VALUES (:settingId, :settingKey, :settingValue, :settingType, :description, 'system')
       `;
 
       try {
         await connection.execute(insertSettingQuery, 
           { 
+            settingId: nextId,
             settingKey: 'EMAIL_SENDING_ENABLED',
             settingValue: 'true',
             settingType: 'boolean',
@@ -612,6 +611,7 @@ async function createLoggingTables() {
           }, 
           { autoCommit: true }
         );
+        nextId++;
       } catch (err) {
         // Might already exist
       }
@@ -619,6 +619,7 @@ async function createLoggingTables() {
       try {
         await connection.execute(insertSettingQuery, 
           { 
+            settingId: nextId,
             settingKey: 'QUESTIONS_ENABLED',
             settingValue: 'true',
             settingType: 'boolean',
@@ -1718,10 +1719,10 @@ app.post('/api/update-email-setting', requireAuth, async (req, res) => {
       );
       console.log(`[${new Date().toISOString()}] Email sending setting updated to ${enabled ? 'enabled' : 'disabled'} by ${updatedBy}`);
     } else {
-      // Insert new setting if it doesn't exist
-      const seqQuery = `SELECT APP_SETTINGS_SEQ.NEXTVAL as nextId FROM DUAL`;
-      const seqResult = await connection.execute(seqQuery);
-      const settingId = seqResult.rows[0][0];
+      // Insert new setting if it doesn't exist, manual SETTING_ID increment
+      const getMaxIdQuery = `SELECT NVL(MAX(SETTING_ID), 0) AS maxId FROM APP_SETTINGS`;
+      const maxIdResult = await connection.execute(getMaxIdQuery);
+      const settingId = (maxIdResult.rows[0][0] || 0) + 1;
 
       const insertQuery = `
         INSERT INTO APP_SETTINGS (SETTING_ID, SETTING_KEY, SETTING_VALUE, SETTING_TYPE, DESCRIPTION, UPDATED_BY, UPDATED_AT)
@@ -3186,6 +3187,14 @@ app.get('/api/view-failed-logs', requireAuth, async (req, res) => {
 app.post('/api/update-status', requireAuth, async (req, res) => {
   const { mobileNumber, statusValue, categoryCodeV } = req.body;
 
+  // Only admins can update number status
+  if (req.session.user.role !== 'admin') {
+    return res.status(403).json({
+      success: false,
+      message: 'Only administrators can update number status.'
+    });
+  }
+
   // Validation
   if (!mobileNumber || statusValue === undefined) {
     return res.status(400).json({ 
@@ -3787,6 +3796,410 @@ app.post('/api/update-sim-num-status', requireAuth, async (req, res) => {
         console.error('Error closing connection:', err);
       }
     }
+  }
+});
+
+// API Route to change SIM category (DATAC or GENRL)
+app.post('/api/change-sim-category', requireAuth, async (req, res) => {
+  let { simNumber, newCategory } = req.body;
+
+  if (!simNumber || !newCategory) {
+    return res.status(400).json({ success: false, message: 'SIM number and new category are required' });
+  }
+
+  const validCategories = ['DATAC', 'GENRL'];
+  if (!validCategories.includes(newCategory.toUpperCase())) {
+    return res.status(400).json({ success: false, message: 'Invalid category. Allowed values: DATAC, GENRL' });
+  }
+
+  // Auto-detect multiple SIMs and handle via bulk logic
+  const simNumberList = simNumber
+    .split(/[,\s\n\r]+/)
+    .map(num => num.trim())
+    .filter(num => num.length > 0);
+
+  if (simNumberList.length > 1) {
+    // Multiple SIMs detected, process as bulk
+    console.log(`[${new Date().toISOString()}] Multiple SIMs detected (${simNumberList.length}), processing as bulk...`);
+    
+    let connection;
+    try {
+      connection = await connectionPool.getConnection();
+
+      let successCount = 0;
+      let restrictedCount = 0;
+      let failureCount = 0;
+      const failedSims = [];
+      const successSims = [];
+
+      // Fetch restricted statuses from database once
+      const restrictedStatusesQuery = `SELECT STATUS_V FROM RESTRICTED_STATUSES`;
+      const restrictedStatusesResult = await connection.execute(restrictedStatusesQuery);
+      const restrictedStatuses = restrictedStatusesResult.rows.map(row => row[0].toString().toUpperCase());
+
+      // Process each SIM number
+      for (const simNum of simNumberList) {
+        try {
+          // Check current status and category
+          const selectQuery = `SELECT STATUS_V, SIM_CATEGORY_CODE_V FROM CBS_CORE.GSM_SIMS_MASTER WHERE SIM_NUM_V = :simNum`;
+          const currentResult = await connection.execute(selectQuery, { simNum: simNum });
+
+          if (currentResult.rows.length === 0) {
+            failureCount++;
+            failedSims.push(`${simNum} (not found)`);
+            await logFailedSim(connection, simNum, 'SIM number not found', req.session.user.username);
+            continue;
+          }
+
+          const currentStatus = currentResult.rows[0][0];
+          const currentCategory = currentResult.rows[0][1];
+
+          // Check if current status is restricted
+          if (restrictedStatuses.includes(currentStatus.toString().toUpperCase())) {
+            restrictedCount++;
+            failedSims.push(`${simNum} (restricted status)`);
+            await logFailedSim(connection, simNum, `Restricted SIM status: ${currentStatus}`, req.session.user.username);
+            continue;
+          }
+
+          // Check if category is already set to target value
+          if (currentCategory && currentCategory.toString().toUpperCase() === newCategory.toUpperCase()) {
+            failedSims.push(`${simNum} (already ${newCategory})`);
+            continue;
+          }
+
+          // Update SIM category
+          const updateQuery = `UPDATE CBS_CORE.GSM_SIMS_MASTER SET SIM_CATEGORY_CODE_V = :newCategory WHERE SIM_NUM_V = :simNum`;
+          const result = await connection.execute(updateQuery, { newCategory: newCategory.toUpperCase(), simNum: simNum }, { autoCommit: true });
+
+          if (result.rowsAffected > 0) {
+            successCount++;
+            successSims.push(`${simNum}`);
+            console.log(`[${new Date().toISOString()}] Updated SIM ${simNum} category to ${newCategory}`);
+          } else {
+            failureCount++;
+            failedSims.push(`${simNum} (update failed)`);
+            await logFailedSim(connection, simNum, 'Update failed - no rows affected', req.session.user.username);
+          }
+        } catch (err) {
+          failureCount++;
+          failedSims.push(`${simNum} (error)`);
+          await logFailedSim(connection, simNum, err.message, req.session.user.username);
+        }
+      }
+
+      // Build response message
+      let message = `Successfully updated ${successCount} SIM(s)`;
+      if (restrictedCount > 0) message += `, ${restrictedCount} restricted`;
+      if (failureCount > 0) message += `, ${failureCount} failed`;
+
+      // Send email notification if any successful updates
+      if (successCount > 0) {
+        const emailSubject = `Bulk SIM Category Update - ${successCount} SIMs Changed`;
+        const emailHtml = `<h2>Bulk SIM Category Update</h2><p>Category changed to: ${newCategory}</p><p>Successfully updated: ${successCount} SIM(s)</p><p>Modified SIMs: ${successSims.join(', ')}</p><p>By: ${req.session.user.username}</p>`;
+        await sendEmailNotification(emailSubject, emailHtml);
+      }
+
+      res.json({ 
+        success: successCount > 0, 
+        message: message,
+        stats: {
+          success: successCount,
+          restricted: restrictedCount,
+          failed: failureCount,
+          failedSims: failedSims.length > 0 ? failedSims : undefined
+        }
+      });
+      
+      if (connection) await connection.close();
+    } catch (err) {
+      console.error('Database error:', err);
+      res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+    }
+    return;
+  }
+
+  // Single SIM processing (original logic)
+  let connection;
+  try {
+    connection = await connectionPool.getConnection();
+    const selectQuery = `SELECT STATUS_V, SIM_CATEGORY_CODE_V FROM CBS_CORE.GSM_SIMS_MASTER WHERE SIM_NUM_V = :simNumber`;
+    const currentResult = await connection.execute(selectQuery, { simNumber: simNumber });
+
+    if (currentResult.rows.length === 0) {
+      await logFailedSim(connection, simNumber, 'SIM number not found', req.session.user.username);
+      return res.status(404).json({ success: false, message: `No SIM found with number: ${simNumber}` });
+    }
+
+    const currentStatus = currentResult.rows[0][0];
+    const currentCategory = currentResult.rows[0][1];
+
+    const restrictedStatusCheckQuery = `SELECT COUNT(*) as count FROM RESTRICTED_STATUSES WHERE STATUS_V = :statusV`;
+    const restrictedStatusResult = await connection.execute(restrictedStatusCheckQuery, { statusV: currentStatus.toString().toUpperCase() });
+    
+    if (restrictedStatusResult.rows[0][0] > 0) {
+      await logFailedSim(connection, simNumber, `Restricted SIM status: ${currentStatus}`, req.session.user.username);
+      return res.status(403).json({ success: false, message: `Cannot modify SIM with restricted status: ${currentStatus}` });
+    }
+
+    if (currentCategory && currentCategory.toString().toUpperCase() === newCategory.toUpperCase()) {
+      return res.json({ success: true, message: `SIM is already set to ${newCategory}. No changes made.` });
+    }
+
+    const updateQuery = `UPDATE CBS_CORE.GSM_SIMS_MASTER SET SIM_CATEGORY_CODE_V = :newCategory WHERE SIM_NUM_V = :simNumber`;
+    const result = await connection.execute(updateQuery, { newCategory: newCategory.toUpperCase(), simNumber: simNumber }, { autoCommit: true });
+
+    if (result.rowsAffected > 0) {
+      console.log(`[${new Date().toISOString()}] Changed SIM ${simNumber} category from ${currentCategory} to ${newCategory}`);
+      const emailSubject = `SIM Category Change - ${simNumber}`;
+      const emailHtml = `<h2>SIM Category Updated</h2><p>SIM: ${simNumber}</p><p>Previous: ${currentCategory}</p><p>New: ${newCategory}</p><p>Status: ${currentStatus}</p><p>By: ${req.session.user.username}</p>`;
+      await sendEmailNotification(emailSubject, emailHtml);
+      res.json({ success: true, message: `SIM category updated successfully from ${currentCategory} to ${newCategory}` });
+    } else {
+      await logFailedSim(connection, simNumber, 'Update failed - no rows affected', req.session.user.username);
+      res.status(500).json({ success: false, message: 'Failed to update SIM category' });
+    }
+  } catch (err) {
+    console.error('Database error:', err);
+    if (connection) await logFailedSim(connection, simNumber, err.message, req.session.user.username);
+    res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+  } finally {
+    if (connection) { try { await connection.close(); } catch (err) { console.error('Error closing connection:', err); } }
+  }
+});
+
+// API Route to bulk change SIM category
+app.post('/api/bulk-change-sim-category', requireAuth, async (req, res) => {
+  const { simNumbers, newCategory } = req.body;
+
+  if (!simNumbers || !newCategory) {
+    return res.status(400).json({ success: false, message: 'SIM numbers and new category are required' });
+  }
+
+  const validCategories = ['DATAC', 'GENRL'];
+  if (!validCategories.includes(newCategory.toUpperCase())) {
+    return res.status(400).json({ success: false, message: 'Invalid category. Allowed values: DATAC, GENRL' });
+  }
+
+  let connection;
+  try {
+    // Parse input - support comma, space, and newline separated values
+    const simNumberList = simNumbers
+      .split(/[,\s\n\r]+/) // Split by comma, space, newline, or carriage return
+      .map(num => num.trim())
+      .filter(num => num.length > 0);
+
+    if (simNumberList.length === 0) {
+      return res.status(400).json({ success: false, message: 'No valid SIM numbers provided' });
+    }
+
+    console.log(`[${new Date().toISOString()}] Bulk changing category for ${simNumberList.length} SIM(s) to ${newCategory}`);
+
+    connection = await connectionPool.getConnection();
+
+    let successCount = 0;
+    let restrictedCount = 0;
+    let failureCount = 0;
+    const failedSims = [];
+    const successSims = [];
+
+    // Fetch restricted statuses from database once
+    const restrictedStatusesQuery = `SELECT STATUS_V FROM RESTRICTED_STATUSES`;
+    const restrictedStatusesResult = await connection.execute(restrictedStatusesQuery);
+    const restrictedStatuses = restrictedStatusesResult.rows.map(row => row[0].toString().toUpperCase());
+
+    // Process each SIM number
+    for (const simNum of simNumberList) {
+      try {
+        // Check current status and category
+        const selectQuery = `SELECT STATUS_V, SIM_CATEGORY_CODE_V FROM CBS_CORE.GSM_SIMS_MASTER WHERE SIM_NUM_V = :simNum`;
+        const currentResult = await connection.execute(selectQuery, { simNum: simNum });
+
+        if (currentResult.rows.length === 0) {
+          failureCount++;
+          failedSims.push(`${simNum} (not found)`);
+          await logFailedSim(connection, simNum, 'SIM number not found', req.session.user.username);
+          continue;
+        }
+
+        const currentStatus = currentResult.rows[0][0];
+        const currentCategory = currentResult.rows[0][1];
+
+        // Check if current status is restricted
+        if (restrictedStatuses.includes(currentStatus.toString().toUpperCase())) {
+          restrictedCount++;
+          failedSims.push(`${simNum} (restricted status)`);
+          await logFailedSim(connection, simNum, `Restricted SIM status: ${currentStatus}`, req.session.user.username);
+          continue;
+        }
+
+        // Check if category is already set to target value
+        if (currentCategory && currentCategory.toString().toUpperCase() === newCategory.toUpperCase()) {
+          failedSims.push(`${simNum} (already ${newCategory})`);
+          continue;
+        }
+
+        // Update SIM category
+        const updateQuery = `UPDATE CBS_CORE.GSM_SIMS_MASTER SET SIM_CATEGORY_CODE_V = :newCategory WHERE SIM_NUM_V = :simNum`;
+        const result = await connection.execute(updateQuery, { newCategory: newCategory.toUpperCase(), simNum: simNum }, { autoCommit: true });
+
+        if (result.rowsAffected > 0) {
+          successCount++;
+          successSims.push(`${simNum}`);
+          console.log(`[${new Date().toISOString()}] Updated SIM ${simNum} category to ${newCategory}`);
+        } else {
+          failureCount++;
+          failedSims.push(`${simNum} (update failed)`);
+          await logFailedSim(connection, simNum, 'Update failed - no rows affected', req.session.user.username);
+        }
+      } catch (err) {
+        failureCount++;
+        failedSims.push(`${simNum} (error)`);
+        await logFailedSim(connection, simNum, err.message, req.session.user.username);
+      }
+    }
+
+    // Build response message
+    let message = `Successfully updated ${successCount} SIM(s)`;
+    if (restrictedCount > 0) message += `, ${restrictedCount} restricted`;
+    if (failureCount > 0) message += `, ${failureCount} failed`;
+
+    // Send email notification if any successful updates
+    if (successCount > 0) {
+      const emailSubject = `Bulk SIM Category Update - ${successCount} SIMs Changed`;
+      const emailHtml = `<h2>Bulk SIM Category Update</h2><p>Category changed to: ${newCategory}</p><p>Successfully updated: ${successCount} SIM(s)</p><p>Modified SIMs: ${successSims.join(', ')}</p><p>By: ${req.session.user.username}</p>`;
+      await sendEmailNotification(emailSubject, emailHtml);
+    }
+
+    res.json({ 
+      success: successCount > 0, 
+      message: message,
+      stats: {
+        success: successCount,
+        restricted: restrictedCount,
+        failed: failureCount,
+        failedSims: failedSims.length > 0 ? failedSims : undefined
+      }
+    });
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+  } finally {
+    if (connection) { try { await connection.close(); } catch (err) { console.error('Error closing connection:', err); } }
+  }
+});
+
+// API Route to search for starter pack number details
+app.post('/api/search-starter-pack-number', requireAuth, async (req, res) => {
+  const { mobileNumber } = req.body;
+
+  if (!mobileNumber) {
+    return res.status(400).json({ success: false, message: 'Mobile number is required' });
+  }
+
+  let connection;
+  try {
+    connection = await connectionPool.getConnection();
+
+    // Query GSM_STARTER_PACK_DTLS table for the mobile number
+    const query = `SELECT MOBILE_NUMBER_V, STATUS_V FROM GSM_STARTER_PACK_DTLS 
+                   WHERE MOBILE_NUMBER_V = :mobileNumber`;
+
+    const result = await connection.execute(query, { mobileNumber: mobileNumber });
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: `Number not found: ${mobileNumber}` });
+    }
+
+    const details = {
+      mobile_number: result.rows[0][0],
+      status_v: result.rows[0][1]
+    };
+
+    res.json({
+      success: true,
+      message: 'Number found successfully',
+      details: details
+    });
+
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+  } finally {
+    if (connection) { try { await connection.close(); } catch (err) { console.error('Error closing connection:', err); } }
+  }
+});
+
+// API Route to unblock starter pack number (update status from B to P)
+app.post('/api/unblock-starter-pack-number', requireAuth, async (req, res) => {
+  const { mobileNumber } = req.body;
+
+  if (!mobileNumber) {
+    return res.status(400).json({ success: false, message: 'Mobile number is required' });
+  }
+
+  let connection;
+  try {
+    connection = await connectionPool.getConnection();
+
+    // First, check if the number exists and get its current status
+    const selectQuery = `SELECT MOBILE_NUMBER_V, STATUS_V FROM GSM_STARTER_PACK_DTLS 
+                        WHERE MOBILE_NUMBER_V = :mobileNumber`;
+
+    const selectResult = await connection.execute(selectQuery, { mobileNumber: mobileNumber });
+
+    if (selectResult.rows.length === 0) {
+      return res.status(404).json({ success: false, message: `Number not found: ${mobileNumber}` });
+    }
+
+    const currentStatus = selectResult.rows[0][1];
+
+    // Check if status is 'B' (Blocked)
+    if (currentStatus !== 'B') {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Cannot unblock. Current status is '${currentStatus}', not 'B' (Blocked). Only 'B' status can be unblocked.` 
+      });
+    }
+
+    // Update status from B to P
+    const updateQuery = `UPDATE GSM_STARTER_PACK_DTLS SET STATUS_V = 'P' 
+                        WHERE MOBILE_NUMBER_V = :mobileNumber`;
+
+    const updateResult = await connection.execute(
+      updateQuery, 
+      { mobileNumber: mobileNumber }, 
+      { autoCommit: true }
+    );
+
+    if (updateResult.rowsAffected > 0) {
+      console.log(`[${new Date().toISOString()}] Starter pack number ${mobileNumber} status changed from B to P by ${req.session.user.username}`);
+      
+      // Send email notification
+      const emailSubject = `Starter Pack Number Unblocked - ${mobileNumber}`;
+      const emailHtml = `
+        <h2>Starter Pack Number Unblock Successful</h2>
+        <p><strong>Mobile Number:</strong> ${mobileNumber}</p>
+        <p><strong>Previous Status:</strong> B (Blocked)</p>
+        <p><strong>New Status:</strong> P (Active)</p>
+        <p><strong>Unblocked By:</strong> ${req.session.user.username}</p>
+        <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
+      `;
+      await sendEmailNotification(emailSubject, emailHtml);
+
+      res.json({
+        success: true,
+        message: `Starter pack number ${mobileNumber} has been unblocked successfully. Status changed from 'B' to 'P'.`
+      });
+    } else {
+      res.status(500).json({ success: false, message: 'Failed to unblock number. No rows updated.' });
+    }
+
+  } catch (err) {
+    console.error('Database error:', err);
+    res.status(500).json({ success: false, message: 'Database error: ' + err.message });
+  } finally {
+    if (connection) { try { await connection.close(); } catch (err) { console.error('Error closing connection:', err); } }
   }
 });
 

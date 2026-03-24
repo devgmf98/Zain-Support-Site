@@ -606,17 +606,25 @@
                     <span class="nav-item-icon">🔍</span>
                     <span>View Number Details</span>
                 </div>
-                <div class="nav-item" onclick="switchTab('mobile')">
+                <div class="nav-item" onclick="switchTab('mobile')" id="mobileNav">
                     <span class="nav-item-icon">📱</span>
                     <span>Update Number Status</span>
                 </div>
                 <div class="nav-item" onclick="switchTab('bulk')">
                     <span class="nav-item-icon">📦</span>
-                    <span>Update Numbers in Bulk</span>
+                    <span>Free Number(s)</span>
                 </div>
                 <div class="nav-item" onclick="switchTab('sim')">
                     <span class="nav-item-icon">🔄</span>
-                    <span>Update Serials</span>
+                    <span>Free Serial(s)</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('changeSimCategory')">
+                    <span class="nav-item-icon">📝</span>
+                    <span>Change Serial to Data Card</span>
+                </div>
+                <div class="nav-item" onclick="switchTab('unblockStarterPack')">
+                    <span class="nav-item-icon">🔓</span>
+                    <span>Unblock Starter Pack Number</span>
                 </div>
             </div>
 
@@ -1094,7 +1102,7 @@
             <!-- Bulk Update Section -->
             <div id="bulkSection" class="form-section">
                 <div class="header">
-                    <h2>Update Numbers in Bulk</h2>
+                    <h2>Free Number(s)</h2>
                     <p>Update multiple mobile numbers at once</p>
                 </div>
 
@@ -1149,7 +1157,7 @@
             <!-- SIM Update Section -->
             <div id="simSection" class="form-section">
                 <div class="header">
-                    <h2>Update Serials</h2>
+                    <h2>Free Serial(s)</h2>
                 </div>
 
                 <div id="simMessageAlert" class="alert"></div>
@@ -1187,6 +1195,111 @@
                 <div class="info-box">
                     <strong>ℹ️ Information</strong>
                     Enter multiple SIM numbers separated by spaces or commas to update their status.
+                </div>
+            </div>
+
+            <!-- Change SIM Category Section -->
+            <div id="changeSimCategorySection" class="form-section">
+                <div class="header">
+                    <h2>Change Serial to Data Card</h2>
+                    <p>Update SIM category from Data Card (DATAC) to General (GENRL) or vice versa</p>
+                </div>
+
+                <div id="changeCategoryMessageAlert" class="alert"></div>
+
+                <form id="changeSimCategoryForm">
+                    <div class="form-group">
+                        <label for="changeCategorySim">SIM Number *</label>
+                        <input 
+                            type="text" 
+                            id="changeCategorySim" 
+                            placeholder="Enter SIM number"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="newSimCategory">New Category *</label>
+                        <select id="newSimCategory" required style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <option value="DATAC" selected>Data Card (DATAC)</option>
+                            <option value="GENRL">General (GENRL)</option>
+                        </select>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn-update">Change Category</button>
+                        <button type="reset" class="btn-clear">Clear</button>
+                    </div>
+
+                    <div class="loading" id="changeCategoryLoadingSpinner">
+                        <span class="spinner"></span>Processing...
+                    </div>
+                </form>
+
+                <div class="info-box">
+                    <strong>ℹ️ Information</strong>
+                    Update the category of a SIM card. SIMs with restricted statuses cannot be modified.
+                </div>
+            </div>
+
+            <!-- Unblock Starter Pack Number Section -->
+            <div id="unblockStarterPackSection" class="form-section">
+                <div class="header">
+                    <h2>Unblock Starter Pack Number</h2>
+                    <p>Search for a number and unblock it if status is 'B' (Blocked)</p>
+                </div>
+
+                <div id="unblockStarterPackMessageAlert" class="alert"></div>
+
+                <form id="searchStarterPackForm">
+                    <div class="form-group">
+                        <label for="searchStarterPackNumber">Mobile Number *</label>
+                        <input 
+                            type="text" 
+                            id="searchStarterPackNumber" 
+                            placeholder="Enter mobile number"
+                            required
+                        >
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn-update">Search</button>
+                        <button type="reset" class="btn-clear">Clear</button>
+                    </div>
+
+                    <div class="loading" id="searchStarterPackLoadingSpinner">
+                        <span class="spinner"></span>Searching...
+                    </div>
+                </form>
+
+                <!-- Search Results Display -->
+                <div id="starterPackDetailsContainer" style="margin-top: 20px; display: none;">
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #667eea;">
+                        <h3 style="margin-top: 0; color: #333;">Details</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <strong>Mobile Number:</strong>
+                                <p id="starterPackMobileNumber">-</p>
+                            </div>
+                            <div>
+                                <strong>Current Status:</strong>
+                                <p id="starterPackCurrentStatus">-</p>
+                            </div>
+                        </div>
+
+                        <div id="unblockButtonContainer" style="margin-top: 15px; display: none;">
+                            <button type="button" class="btn-update" onclick="unblockStarterPackNumber()">Unblock Number</button>
+                        </div>
+
+                        <div id="statusNotBlockedMessage" style="margin-top: 15px; padding: 10px; background: #e3f2fd; border-left: 4px solid #2196F3; display: none;">
+                            <strong>ℹ️ Info:</strong> This number is not blocked. Status is already '<span id="displayCurrentStatus"></span>'.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <strong>ℹ️ Information</strong>
+                    Search for a starter pack number to view its current status. If the status is 'B' (Blocked), you can update it to 'P' (Active) to unblock it.
                 </div>
             </div>
 
@@ -2021,6 +2134,8 @@
             if (user.role === 'admin') {
                 settingsDropdown.style.display = 'block';
                 dashboardNav.style.display = 'flex';
+                // Show mobile nav (Update Number Status) for admins
+                document.getElementById('mobileNav').style.display = 'flex';
                 // Show category fields for admins
                 document.getElementById('categoryFieldGroup').style.display = 'block';
                 document.getElementById('bulkCategoryFieldGroup').style.display = 'block';
@@ -2038,6 +2153,8 @@
             } else {
                 settingsDropdown.style.display = 'none';
                 dashboardNav.style.display = 'none';
+                // Hide mobile nav (Update Number Status) for non-admins
+                document.getElementById('mobileNav').style.display = 'none';
                 // Hide main admin sections container
                 const mainAdminSections = document.getElementById('adminSections');
                 if (mainAdminSections) mainAdminSections.style.display = 'none';
@@ -2096,6 +2213,9 @@
                 'mobile': 'mobileSection',
                 'bulk': 'bulkSection',
                 'sim': 'simSection',
+                'changeSimCategory': 'changeSimCategorySection',
+                'bulkChangeSimCategory': 'bulkChangeSimCategorySection',
+                'unblockStarterPack': 'unblockStarterPackSection',
                 'support': 'supportSection',
                 'account': 'accountSection',
                 'settings': 'settingsSection'
@@ -2490,6 +2610,173 @@
                 showToast('Error: ' + error.message, 'error');
             }
         });
+
+        // ============ CHANGE SIM CATEGORY FORM ============
+        const changeSimCategoryForm = document.getElementById('changeSimCategoryForm');
+        
+        if (changeSimCategoryForm) {
+        changeSimCategoryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const simNumber = document.getElementById('changeCategorySim').value.trim();
+            const newCategory = document.getElementById('newSimCategory').value.trim();
+
+            if (!simNumber || !newCategory) {
+                showMessage('Please fill in all required fields', 'error', 'changeCategoryMessageAlert');
+                return;
+            }
+
+            document.getElementById('changeCategoryLoadingSpinner').style.display = 'block';
+
+            try {
+                const response = await fetch('/api/change-sim-category', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ simNumber, newCategory })
+                });
+
+                const data = await response.json();
+                document.getElementById('changeCategoryLoadingSpinner').style.display = 'none';
+
+                showToast(data.message, response.ok ? 'success' : 'error');
+                if (response.ok) changeSimCategoryForm.reset();
+            } catch (error) {
+                document.getElementById('changeCategoryLoadingSpinner').style.display = 'none';
+                showToast('Error: ' + error.message, 'error');
+            }
+        });
+        }
+
+        // ============ BULK CHANGE SIM CATEGORY FORM ============
+        const bulkChangeSimCategoryForm = document.getElementById('bulkChangeSimCategoryForm');
+        
+        if (bulkChangeSimCategoryForm) {
+        bulkChangeSimCategoryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const simNumbersRaw = document.getElementById('bulkChangeSimNumbers').value.trim();
+            const newCategory = document.getElementById('bulkNewSimCategory').value.trim();
+            
+            // Parse SIM numbers - handle comma, space, or newline separated
+            const simNumbers = simNumbersRaw
+                .replace(/[,\s\n\r]+/g, ',') // Replace any separator with comma
+                .split(',')
+                .map(num => num.trim())
+                .filter(num => num.length > 0)
+                .join(','); // Rejoin with comma for API
+
+            if (!simNumbers || !newCategory) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+
+            document.getElementById('bulkChangeCategoryLoadingSpinner').style.display = 'block';
+
+            try {
+                const response = await fetch('/api/bulk-change-sim-category', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ simNumbers, newCategory })
+                });
+
+                const data = await response.json();
+                document.getElementById('bulkChangeCategoryLoadingSpinner').style.display = 'none';
+
+                showToast(data.message, response.ok ? 'success' : 'error');
+                if (response.ok) bulkChangeSimCategoryForm.reset();
+            } catch (error) {
+                document.getElementById('bulkChangeCategoryLoadingSpinner').style.display = 'none';
+                showToast('Error: ' + error.message, 'error');
+            }
+        });
+        }
+
+        // ============ UNBLOCK STARTER PACK SECTION ============
+        const searchStarterPackForm = document.getElementById('searchStarterPackForm');
+        if (searchStarterPackForm) {
+            searchStarterPackForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const mobileNumber = document.getElementById('searchStarterPackNumber').value.trim();
+
+                if (!mobileNumber) {
+                    showToast('Please enter a mobile number', 'error');
+                    return;
+                }
+
+                document.getElementById('searchStarterPackLoadingSpinner').style.display = 'block';
+                document.getElementById('starterPackDetailsContainer').style.display = 'none';
+
+                try {
+                    const response = await fetch('/api/search-starter-pack-number', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mobileNumber })
+                    });
+
+                    const data = await response.json();
+                    document.getElementById('searchStarterPackLoadingSpinner').style.display = 'none';
+
+                    if (data.success) {
+                        // Display the details
+                        document.getElementById('starterPackMobileNumber').textContent = data.details.mobile_number || '-';
+                        document.getElementById('starterPackCurrentStatus').textContent = data.details.status_v || '-';
+
+                        // Show/hide unblock button based on status
+                        const unblockButtonContainer = document.getElementById('unblockButtonContainer');
+                        const statusNotBlockedMessage = document.getElementById('statusNotBlockedMessage');
+                        
+                        if (data.details.status_v === 'B') {
+                            unblockButtonContainer.style.display = 'block';
+                            statusNotBlockedMessage.style.display = 'none';
+                        } else {
+                            unblockButtonContainer.style.display = 'none';
+                            document.getElementById('displayCurrentStatus').textContent = data.details.status_v || '-';
+                            statusNotBlockedMessage.style.display = 'block';
+                        }
+
+                        document.getElementById('starterPackDetailsContainer').style.display = 'block';
+                        showToast('Number found', 'success');
+                    } else {
+                        showToast(data.message || 'Number not found', 'error');
+                    }
+                } catch (error) {
+                    document.getElementById('searchStarterPackLoadingSpinner').style.display = 'none';
+                    showToast('Error: ' + error.message, 'error');
+                }
+            });
+        }
+
+        // Function to unblock starter pack number
+        window.unblockStarterPackNumber = async function() {
+            const mobileNumber = document.getElementById('searchStarterPackNumber').value.trim();
+
+            if (!mobileNumber) {
+                showToast('Please search for a number first', 'error');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to unblock this number?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/unblock-starter-pack-number', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mobileNumber })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast(data.message, 'success');
+                    document.getElementById('searchStarterPackForm').reset();
+                    document.getElementById('starterPackDetailsContainer').style.display = 'none';
+                } else {
+                    showToast(data.message || 'Failed to unblock number', 'error');
+                }
+            } catch (error) {
+                showToast('Error: ' + error.message, 'error');
+            }
+        };
 
         // ============ ACCOUNT SECTION - CHANGE PASSWORD ============
         const changePasswordForm = document.getElementById('changePasswordForm');
