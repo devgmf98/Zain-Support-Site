@@ -4215,14 +4215,15 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
 
     connection = await connectionPool.getConnection();
 
-    // Format dates with time component for the SQL query
-    // startDate/endDate from frontend are ISO strings: 2026-03-24T00:00:00.000Z and 2026-03-24T23:59:59.000Z
-    const startDateObj = new Date(startDate);
-    const endDateObj = new Date(endDate);
+    // Extract date portion from ISO string and format for SQL query
+    // startDate/endDate from frontend are ISO strings with times: 2026-03-01T00:00:00.000Z and 2026-03-01T23:59:59.000Z
+    // Extract just the date part (YYYY-MM-DD) from the ISO string
+    const startDatePart = startDate.substring(0, 10); // "2026-03-01"
+    const endDatePart = endDate.substring(0, 10);   // "2026-03-01"
     
-    // Convert to format: "2026-03-24 00:00:00" or "2026-03-24 23:59:59"
-    const startDateFormatted = startDateObj.toISOString().replace('Z', '').slice(0, 19).replace('T', ' ');
-    const endDateFormatted = endDateObj.toISOString().replace('Z', '').slice(0, 19).replace('T', ' ');
+    // Construct datetime strings for SQL: "2026-03-01 00:00:00" and "2026-03-01 23:59:59"
+    const startDateFormatted = startDatePart + ' 00:00:00';
+    const endDateFormatted = endDatePart + ' 23:59:59';
 
     const query = `
       SELECT

@@ -2856,14 +2856,14 @@
                     return;
                 }
 
-                // Convert datetime-local to ISO format with specific times
-                // From date: 00:00:00, To date: 23:59:59
-                const startDateObj = new Date(startDateInput);
-                startDateObj.setHours(0, 0, 0, 0);
+                // Parse date string and create local timezone dates with specific times
+                // type="date" sends format like "2026-03-01"
+                const [startYear, startMonth, startDay] = startDateInput.split('-');
+                const startDateObj = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
                 const startDate = startDateObj.toISOString();
 
-                const endDateObj = new Date(endDateInput);
-                endDateObj.setHours(23, 59, 59, 0);
+                const [endYear, endMonth, endDay] = endDateInput.split('-');
+                const endDateObj = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 0);
                 const endDate = endDateObj.toISOString();
 
                 loadingSpinner.style.display = 'block';
