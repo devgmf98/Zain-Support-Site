@@ -4275,8 +4275,8 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
       JOIN CB_ACCOUNT_MASTER b ON a.ACCOUNT_CODE_N = b.ACCOUNT_CODE_N
       WHERE a.ACCOUNT_CODE_N = :accountCode
       AND a.CALL_DATE_TIME_DT BETWEEN 
-        TO_TIMESTAMP(:startDate, 'YYYY-MM-DD HH24:MI:SS') 
-      AND TO_TIMESTAMP(:endDate, 'YYYY-MM-DD HH24:MI:SS')
+        TO_DATE(:startDate, 'YYYY-MM-DD HH24:MI:SS') 
+      AND TO_DATE(:endDate, 'YYYY-MM-DD HH24:MI:SS')
       ORDER BY a.CALL_DATE_TIME_DT ASC
     `;
 
