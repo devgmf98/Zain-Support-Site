@@ -4203,6 +4203,134 @@ app.post('/api/unblock-starter-pack-number', requireAuth, async (req, res) => {
   }
 });
 
+// API Route to generate Account CDRs in Excel format
+app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
+  const { accountCode, startDate, endDate } = req.body;
+  let connection;
+
+  try {
+    if (!accountCode || !startDate || !endDate) {
+      return res.status(400).json({ success: false, message: 'Account code and date range are required' });
+    }
+
+    connection = await connectionPool.getConnection();
+
+    // Format dates for the SQL query
+    const startDateFormatted = new Date(startDate).toISOString().split('T')[0];
+    const endDateFormatted = new Date(endDate).toISOString().split('T')[0];
+
+    const query = `
+      SELECT
+        TO_CHAR(a.CALL_DATE_TIME_DT, 'MM/DD/YYYY HH24:MI:SS') AS TRANDATE,
+        CASE
+          WHEN a.CALL_TYPE_V = '031' THEN 'SMS'
+          WHEN a.CALL_TYPE_V = '029' THEN 'VOICE'
+          WHEN a.CALL_TYPE_V = '002' THEN 'VOICE'
+          WHEN a.CALL_TYPE_V = '018' THEN 'DATA'
+          WHEN a.CALL_TYPE_V = '001' THEN 'VOICE'
+          WHEN a.CALL_TYPE_V = '030' THEN 'SMS'
+        END AS SERVICE,
+        '211' || a.SERVICE_IDENTIFIER_V AS CHARGEDMSISDN,
+        CASE 
+          WHEN a.ORG_NETWORK_ID_V <> '65557' THEN 'TRUE'
+          ELSE 'FALSE'
+        END AS ROAMING,
+        CASE
+          WHEN a.CALL_TYPE_V = '031' THEN 'OUTGOING'
+          WHEN a.CALL_TYPE_V = '029' THEN 'CALL_FORWARDING'
+          WHEN a.CALL_TYPE_V = '002' THEN 'INCOMING'
+          WHEN a.CALL_TYPE_V = '018' THEN 'DATA'
+          WHEN a.CALL_TYPE_V = '001' THEN 'OUTGOING'
+          WHEN a.CALL_TYPE_V = '030' THEN 'INCOMING'
+        END AS DIRECTION,
+        a.CALLED_CALLING_NUMBER_V AS DESTMSISDN,
+        TO_CHAR(TRUNC(a.DURATION_N / 3600), 'FM00') || ':' || 
+        TO_CHAR(TRUNC(MOD(a.DURATION_N, 3600) / 60), 'FM00') || ':' || 
+        TO_CHAR(MOD(a.DURATION_N, 60), 'FM00') AS DURATION,
+        CASE 
+          WHEN a.CALLED_CALLING_NUMBER_V LIKE '00254%' THEN 'Kenya'
+          WHEN a.CALLED_CALLING_NUMBER_V LIKE '00250%' THEN 'Rwanda'
+          WHEN a.CALLED_CALLING_NUMBER_V LIKE '00256%' THEN 'Uganda'
+          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0091%' THEN 'India'
+          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0060%' THEN 'Malaysia'
+          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0082%' THEN 'South Korea'
+          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0044%' THEN 'United Kingdom'
+          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0001%' THEN 'United States'
+          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0061%' THEN 'Australia'
+          WHEN a.CALLED_CALLING_NUMBER_V LIKE '007%' THEN 'Russia'
+          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0021191%' THEN 'On Net South-Zain'
+          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0021192%' THEN 'Off Net South-Zain'
+          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0021198%' THEN 'Off Net South-Zain'
+          ELSE 'International'
+        END AS DESTINATIONPARTYLOCATION,
+        a.DATA_VOLUME_UPLOADED_N / 1024 / 1024 AS DATA_USAGE,
+        a.charge_amount_n / 10000 AS COST,
+        b.CURRENCY_CODE_V AS CURRENCY
+      FROM CB_POSTPAID_UPLOAD_ALL_CDRS a
+      JOIN CB_ACCOUNT_MASTER b ON a.ACCOUNT_CODE_N = b.ACCOUNT_CODE_N
+      WHERE a.ACCOUNT_CODE_N = :accountCode
+      AND a.CALL_DATE_TIME_DT BETWEEN 
+        TO_DATE(:startDate, 'YYYY-MM-DD') 
+      AND TO_DATE(:endDate, 'YYYY-MM-DD') + 1
+      ORDER BY a.CALL_DATE_TIME_DT ASC
+    `;
+
+    const result = await connection.execute(query, {
+      accountCode: accountCode,
+      startDate: startDateFormatted,
+      endDate: endDateFormatted
+    });
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'No CDR records found for the specified account and date range' });
+    }
+
+    // Create Excel workbook
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('CDRs');
+
+    // Add headers
+    const headers = ['TRANDATE', 'SERVICE', 'CHARGEDMSISDN', 'ROAMING', 'DIRECTION', 'DESTMSISDN', 'DURATION', 'DESTINATION', 'DATA_USAGE', 'COST', 'CURRENCY'];
+    worksheet.addRow(headers);
+
+    // Style header row
+    worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF366092' } };
+
+    // Add data rows
+    result.rows.forEach(row => {
+      worksheet.addRow(row);
+    });
+
+    // Auto-fit columns
+    headers.forEach((header, index) => {
+      worksheet.getColumn(index + 1).width = 20;
+    });
+
+    // Generate buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    // Send as file
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="CDR_${accountCode}_${startDateFormatted}_to_${endDateFormatted}.xlsx"`);
+    res.send(buffer);
+
+    console.log(`[${new Date().toISOString()}] CDR report generated for account ${accountCode} by ${req.session.user.username}`);
+
+  } catch (err) {
+    console.error('[' + new Date().toISOString() + '] Error generating CDR report:', err.message);
+    res.status(500).json({ success: false, message: 'Failed to generate CDR report: ' + err.message });
+  } finally {
+    if (connection) {
+      try {
+        await connection.close();
+      } catch (closeErr) {
+        console.error('Error closing connection:', closeErr);
+      }
+    }
+  }
+});
+
 // API Route to get mobile number details
 app.get('/api/get-mobile-details/:mobileNumber', requireAuth, async (req, res) => {
   const { mobileNumber } = req.params;

@@ -626,6 +626,10 @@
                     <span class="nav-item-icon">🔓</span>
                     <span>Unblock Starter Pack Number</span>
                 </div>
+                <div class="nav-item" onclick="switchTab('generateCdr')">
+                    <span class="nav-item-icon">📊</span>
+                    <span>Generate Account CDRs (Excel)</span>
+                </div>
             </div>
 
             <!-- Account Section -->
@@ -1300,6 +1304,60 @@
                 <div class="info-box">
                     <strong>ℹ️ Information</strong>
                     Search for a starter pack number to view its current status. If the status is 'B' (Blocked), you can update it to 'P' (Active) to unblock it.
+                </div>
+            </div>
+
+            <!-- Generate Account CDRs Section -->
+            <div id="generateCdrSection" class="form-section">
+                <div class="header">
+                    <h2>Generate Account CDRs in Excel</h2>
+                    <p>Download Call Detail Records for an account within a date range</p>
+                </div>
+
+                <div id="cdrMessageAlert" class="alert"></div>
+
+                <form id="generateCdrForm">
+                    <div class="form-group">
+                        <label for="cdrAccountCode">Account Code *</label>
+                        <input 
+                            type="text" 
+                            id="cdrAccountCode" 
+                            placeholder="Enter account code (e.g., 6655907)"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cdrStartDate">From Date *</label>
+                        <input 
+                            type="datetime-local" 
+                            id="cdrStartDate" 
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cdrEndDate">To Date *</label>
+                        <input 
+                            type="datetime-local" 
+                            id="cdrEndDate" 
+                            required
+                        >
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="btn-update">Generate & Download Excel</button>
+                        <button type="reset" class="btn-clear">Clear</button>
+                    </div>
+
+                    <div class="loading" id="cdrLoadingSpinner">
+                        <span class="spinner"></span>Generating CDR report...
+                    </div>
+                </form>
+
+                <div class="info-box">
+                    <strong>ℹ️ Information</strong>
+                    This will generate an Excel file containing all Call Detail Records (CDRs) for the specified account and date range. The report includes call date, service type, charges, roaming details, and destination information.
                 </div>
             </div>
 
@@ -2216,6 +2274,7 @@
                 'changeSimCategory': 'changeSimCategorySection',
                 'bulkChangeSimCategory': 'bulkChangeSimCategorySection',
                 'unblockStarterPack': 'unblockStarterPackSection',
+                'generateCdr': 'generateCdrSection',
                 'support': 'supportSection',
                 'account': 'accountSection',
                 'settings': 'settingsSection'
@@ -2777,6 +2836,75 @@
                 showToast('Error: ' + error.message, 'error');
             }
         };
+
+        // ============ GENERATE ACCOUNT CDRs SECTION ============
+        const generateCdrForm = document.getElementById('generateCdrForm');
+        if (generateCdrForm) {
+            generateCdrForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const accountCode = document.getElementById('cdrAccountCode').value.trim();
+                const startDateInput = document.getElementById('cdrStartDate').value;
+                const endDateInput = document.getElementById('cdrEndDate').value;
+                const alertDiv = document.getElementById('cdrMessageAlert');
+                const loadingSpinner = document.getElementById('cdrLoadingSpinner');
+
+                alertDiv.textContent = '';
+                alertDiv.className = 'alert';
+
+                if (!accountCode || !startDateInput || !endDateInput) {
+                    showToast('Please fill in all fields', 'error');
+                    return;
+                }
+
+                // Convert datetime-local to ISO format for API
+                const startDate = new Date(startDateInput).toISOString();
+                const endDate = new Date(endDateInput).toISOString();
+
+                loadingSpinner.style.display = 'block';
+
+                try {
+                    const response = await fetch('/api/generate-account-cdrs', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            accountCode: accountCode,
+                            startDate: startDate,
+                            endDate: endDate
+                        })
+                    });
+
+                    if (response.ok && response.headers.get('content-type').includes('application/octet-stream')) {
+                        // Download the file
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `CDR_${accountCode}_${new Date().toISOString().split('T')[0]}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+
+                        loadingSpinner.style.display = 'none';
+                        alertDiv.className = 'alert alert-success';
+                        alertDiv.textContent = 'CDR report downloaded successfully!';
+                        showToast('CDR report generated and downloaded successfully', 'success');
+                        generateCdrForm.reset();
+                    } else {
+                        const data = await response.json();
+                        loadingSpinner.style.display = 'none';
+                        alertDiv.className = 'alert alert-error';
+                        alertDiv.textContent = data.message || 'Failed to generate CDR report';
+                        showToast(data.message || 'Error generating CDR report', 'error');
+                    }
+                } catch (error) {
+                    loadingSpinner.style.display = 'none';
+                    alertDiv.className = 'alert alert-error';
+                    alertDiv.textContent = 'Error: ' + error.message;
+                    showToast('Error: ' + error.message, 'error');
+                }
+            });
+        }
 
         // ============ ACCOUNT SECTION - CHANGE PASSWORD ============
         const changePasswordForm = document.getElementById('changePasswordForm');
