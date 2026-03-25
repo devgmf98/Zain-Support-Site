@@ -628,7 +628,7 @@
                 </div>
                 <div class="nav-item" onclick="switchTab('sim')">
                     <span class="nav-item-icon">🔄</span>
-                    <span>Free Data Card(s)</span>
+                    <span>Free Serial(s)</span>
                 </div>
                 <div class="nav-item" onclick="switchTab('changeSimCategory')" id="changeDataCardCategoryNav">
                     <span class="nav-item-icon">📝</span>
@@ -765,9 +765,9 @@
                 <div id="resentMobilePagination" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e0e0e0; text-align: end;"></div>
             </div>
 
-            <!-- Resent Updated Data Cards -->
+            <!-- Resent Updated Serials -->
             <div id="adminOnlyResentSerials" style="display: none; margin-bottom: 30px; background: #fff; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); padding: 32px;">
-                <h4 style="color: #0084d4; margin-bottom: 10px;">💳 Resent Updated Data Cards</h4>
+                <h4 style="color: #0084d4; margin-bottom: 10px;">💳 Resent Updated Serials</h4>
                 <div id="resentSerialTable" style="overflow-x: auto;"></div>
                 <div id="resentSerialPagination" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #e0e0e0; text-align: end;"></div>
             </div>
@@ -1173,17 +1173,17 @@
             <!-- SIM Update Section -->
             <div id="simSection" class="form-section">
                 <div class="header">
-                    <h2>Free Data Card(s)</h2>
+                    <h2>Free Serial(s)</h2>
                 </div>
 
                 <div id="simMessageAlert" class="alert"></div>
 
                 <form id="simUpdateForm">
                     <div class="form-group">
-                        <label for="simNumbers">Data Card Numbers *</label>
+                        <label for="simNumbers">SIM Numbers *</label>
                         <textarea 
                             id="simNumbers" 
-                            placeholder="Enter Data Card(s)"
+                            placeholder="Enter Serial"
                             required
                         ></textarea>
                     </div>
