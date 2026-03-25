@@ -630,7 +630,7 @@
                     <span class="nav-item-icon">🔄</span>
                     <span>Free Data Card(s)</span>
                 </div>
-                <div class="nav-item" onclick="switchTab('changeSimCategory')">
+                <div class="nav-item" onclick="switchTab('changeSimCategory')" id="changeDataCardCategoryNav">
                     <span class="nav-item-icon">📝</span>
                     <span>Change Data Card Category</span>
                 </div>
@@ -2214,6 +2214,12 @@
             const unblockStarterPackNav = document.getElementById('unblockStarterPackNav');
             if (unblockStarterPackNav) {
                 unblockStarterPackNav.style.display = (user.role === 'shop' || user.role === 'admin') ? 'flex' : 'none';
+            }
+            
+            // Control visibility of Change Data Card Category based on role (shop and admin only)
+            const changeDataCardCategoryNav = document.getElementById('changeDataCardCategoryNav');
+            if (changeDataCardCategoryNav) {
+                changeDataCardCategoryNav.style.display = (user.role === 'shop' || user.role === 'admin') ? 'flex' : 'none';
             }
             
             // Show Dashboard and Settings only if user is admin
