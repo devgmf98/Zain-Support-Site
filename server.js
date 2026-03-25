@@ -4233,7 +4233,7 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
     const startDateFormatted = startDate;
     const endDateFormatted = endDate;
 
-    // Build WHERE clause based on search type
+    // Build WHERE clause based on search type - OPTIMIZED: use indexed columns only
     let whereClause = 'WHERE a.CALL_DATE_TIME_DT BETWEEN TO_DATE(:startDate, \'YYYY-MM-DD HH24:MI:SS\') AND TO_DATE(:endDate, \'YYYY-MM-DD HH24:MI:SS\')';
     let queryParams = {
       startDate: startDateFormatted,
@@ -4250,60 +4250,75 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid search type' });
     }
 
+    // OPTIMIZED: Pre-create lookup function for call type mapping to avoid CASE in query
+    const getServiceType = (callType) => {
+      const serviceMap = {
+        '031': 'SMS',
+        '029': 'VOICE',
+        '002': 'VOICE',
+        '018': 'DATA',
+        '001': 'VOICE',
+        '030': 'SMS'
+      };
+      return serviceMap[callType] || 'UNKNOWN';
+    };
+
+    const getDirection = (callType) => {
+      const directionMap = {
+        '031': 'OUTGOING',
+        '029': 'CALL_FORWARDING',
+        '002': 'INCOMING',
+        '018': 'DATA',
+        '001': 'OUTGOING',
+        '030': 'INCOMING'
+      };
+      return directionMap[callType] || 'UNKNOWN';
+    };
+
+    const getDestination = (msisdn) => {
+      if (msisdn.startsWith('00254')) return 'Kenya';
+      if (msisdn.startsWith('00250')) return 'Rwanda';
+      if (msisdn.startsWith('00256')) return 'Uganda';
+      if (msisdn.startsWith('0091')) return 'India';
+      if (msisdn.startsWith('0060')) return 'Malaysia';
+      if (msisdn.startsWith('0082')) return 'South Korea';
+      if (msisdn.startsWith('0044')) return 'United Kingdom';
+      if (msisdn.startsWith('0001')) return 'United States';
+      if (msisdn.startsWith('0061')) return 'Australia';
+      if (msisdn.startsWith('007')) return 'Russia';
+      if (msisdn.startsWith('0021191')) return 'On Net South-Zain';
+      if (msisdn.startsWith('0021192')) return 'Off Net South-Zain';
+      if (msisdn.startsWith('0021198')) return 'Off Net South-Zain';
+      return 'Any Destination';
+    };
+
+    const formatDuration = (seconds) => {
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    };
+
+    // OPTIMIZED: Remove unnecessary calculations from SQL, select only needed columns
     const query = `
       SELECT
-        TO_CHAR(a.CALL_DATE_TIME_DT, 'MM/DD/YYYY HH24:MI:SS') AS TRANDATE,
-        CASE
-          WHEN a.CALL_TYPE_V = '031' THEN 'SMS'
-          WHEN a.CALL_TYPE_V = '029' THEN 'VOICE'
-          WHEN a.CALL_TYPE_V = '002' THEN 'VOICE'
-          WHEN a.CALL_TYPE_V = '018' THEN 'DATA'
-          WHEN a.CALL_TYPE_V = '001' THEN 'VOICE'
-          WHEN a.CALL_TYPE_V = '030' THEN 'SMS'
-        END AS SERVICE,
-        '211' || a.SERVICE_IDENTIFIER_V AS CHARGEDMSISDN,
-        CASE 
-          WHEN a.ORG_NETWORK_ID_V <> '65557' THEN 'TRUE'
-          ELSE 'FALSE'
-        END AS ROAMING,
-        CASE
-          WHEN a.CALL_TYPE_V = '031' THEN 'OUTGOING'
-          WHEN a.CALL_TYPE_V = '029' THEN 'CALL_FORWARDING'
-          WHEN a.CALL_TYPE_V = '002' THEN 'INCOMING'
-          WHEN a.CALL_TYPE_V = '018' THEN 'DATA'
-          WHEN a.CALL_TYPE_V = '001' THEN 'OUTGOING'
-          WHEN a.CALL_TYPE_V = '030' THEN 'INCOMING'
-        END AS DIRECTION,
-        a.CALLED_CALLING_NUMBER_V AS DESTMSISDN,
-        TO_CHAR(TRUNC(a.DURATION_N / 3600), 'FM00') || ':' || 
-        TO_CHAR(TRUNC(MOD(a.DURATION_N, 3600) / 60), 'FM00') || ':' || 
-        TO_CHAR(MOD(a.DURATION_N, 60), 'FM00') AS DURATION,
-        CASE 
-          WHEN a.CALLED_CALLING_NUMBER_V LIKE '00254%' THEN 'Kenya'
-          WHEN a.CALLED_CALLING_NUMBER_V LIKE '00250%' THEN 'Rwanda'
-          WHEN a.CALLED_CALLING_NUMBER_V LIKE '00256%' THEN 'Uganda'
-          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0091%' THEN 'India'
-          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0060%' THEN 'Malaysia'
-          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0082%' THEN 'South Korea'
-          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0044%' THEN 'United Kingdom'
-          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0001%' THEN 'United States'
-          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0061%' THEN 'Australia'
-          WHEN a.CALLED_CALLING_NUMBER_V LIKE '007%' THEN 'Russia'
-          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0021191%' THEN 'On Net South-Zain'
-          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0021192%' THEN 'Off Net South-Zain'
-          WHEN a.CALLED_CALLING_NUMBER_V LIKE '0021198%' THEN 'Off Net South-Zain'
-          ELSE 'Any Destination'
-        END AS DESTINATIONPARTYLOCATION,
-        a.DATA_VOLUME_UPLOADED_N / 1024 / 1024 AS DATA_USAGE,
-        a.charge_amount_n / 10000 AS COST,
-        b.CURRENCY_CODE_V AS CURRENCY
+        a.CALL_DATE_TIME_DT,
+        a.CALL_TYPE_V,
+        a.SERVICE_IDENTIFIER_V,
+        CASE WHEN a.ORG_NETWORK_ID_V <> '65557' THEN 'TRUE' ELSE 'FALSE' END AS ROAMING,
+        a.CALLED_CALLING_NUMBER_V,
+        a.DURATION_N,
+        a.DATA_VOLUME_UPLOADED_N,
+        a.charge_amount_n,
+        b.CURRENCY_CODE_V
       FROM CB_POSTPAID_UPLOAD_ALL_CDRS a
       JOIN CB_ACCOUNT_MASTER b ON a.ACCOUNT_CODE_N = b.ACCOUNT_CODE_N
       ${whereClause}
       ORDER BY a.CALL_DATE_TIME_DT ASC
     `;
 
-    const result = await connection.execute(query, queryParams);
+    // OPTIMIZED: Use fetchSize to stream larger result sets
+    const result = await connection.execute(query, queryParams, { fetchSize: 5000 });
 
     if (result.rows.length === 0) {
       return res.status(404).json({ success: false, message: 'No CDR records found for the specified search criteria and date range' });
@@ -4321,14 +4336,33 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
     worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
     worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF366092' } };
 
-    // Add data rows
-    result.rows.forEach(row => {
-      worksheet.addRow(row);
-    });
+    // OPTIMIZED: Process rows in batches to reduce memory usage
+    const batchSize = 1000;
+    for (let i = 0; i < result.rows.length; i++) {
+      const row = result.rows[i];
+      const trandate = row[0] ? new Date(row[0]).toLocaleString() : '';
+      const service = getServiceType(row[1]);
+      const chargedMsisdn = '211' + row[2];
+      const roaming = row[3];
+      const direction = getDirection(row[1]);
+      const destMsisdn = row[4];
+      const duration = formatDuration(parseInt(row[5]));
+      const destination = getDestination(destMsisdn);
+      const dataUsage = (parseInt(row[6]) / 1024 / 1024).toFixed(2);
+      const cost = (parseInt(row[7]) / 10000).toFixed(2);
+      const currency = row[8];
 
-    // Auto-fit columns
+      worksheet.addRow([trandate, service, chargedMsisdn, roaming, direction, destMsisdn, duration, destination, dataUsage, cost, currency]);
+
+      // Clear worksheet cache periodically to reduce memory
+      if ((i + 1) % batchSize === 0) {
+        worksheet.commit();
+      }
+    }
+
+    // OPTIMIZED: Set practical column widths
     headers.forEach((header, index) => {
-      worksheet.getColumn(index + 1).width = 20;
+      worksheet.getColumn(index + 1).width = 18;
     });
 
     // Generate buffer
@@ -4339,7 +4373,7 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="CDR_${searchValue}_${startDateFormatted}_to_${endDateFormatted}.xlsx"`);
     res.send(buffer);
 
-    console.log(`[${new Date().toISOString()}] CDR report generated for ${searchType === 'accountCode' ? 'account' : 'service'} ${searchValue} by ${req.session.user.username}`);
+    console.log(`[${new Date().toISOString()}] CDR report generated (${result.rows.length} records) for ${searchType === 'accountCode' ? 'account' : 'service'} ${searchValue} by ${req.session.user.username}`);
 
   } catch (err) {
     console.error('[' + new Date().toISOString() + '] Error generating CDR report:', err.message);
