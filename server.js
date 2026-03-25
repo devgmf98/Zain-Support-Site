@@ -1635,10 +1635,10 @@ app.post('/api/update-questions-setting', requireAuth, async (req, res) => {
       );
       console.log(`[${new Date().toISOString()}] Support questions setting updated to ${enabled ? 'enabled' : 'disabled'} by ${updatedBy}`);
     } else {
-      // Insert new setting if it doesn't exist
-      const seqQuery = `SELECT APP_SETTINGS_SEQ.NEXTVAL as nextId FROM DUAL`;
-      const seqResult = await connection.execute(seqQuery);
-      const settingId = seqResult.rows[0][0];
+      // Insert new setting if it doesn't exist - get max ID manually
+      const maxIdQuery = `SELECT MAX(SETTING_ID) as maxId FROM APP_SETTINGS`;
+      const maxIdResult = await connection.execute(maxIdQuery);
+      const settingId = (maxIdResult.rows[0][0] || 0) + 1;
 
       const insertQuery = `
         INSERT INTO APP_SETTINGS (SETTING_ID, SETTING_KEY, SETTING_VALUE, SETTING_TYPE, DESCRIPTION, UPDATED_BY, UPDATED_AT)
@@ -2399,6 +2399,11 @@ app.post('/api/create-user', requireAuth, async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Get next USER_ID (without relying on sequence due to permission issues)
+    const maxIdQuery = `SELECT MAX(USER_ID) as maxId FROM ZAINSUPPORTUSERS`;
+    const maxIdResult = await connection.execute(maxIdQuery);
+    const nextUserId = (maxIdResult.rows[0][0] || 0) + 1;
+
     // Insert new user with password expiry (5 min from now, except admin)
     let passwordExpiresAt = null;
     if (role.toLowerCase() !== 'admin') {
@@ -2406,16 +2411,17 @@ app.post('/api/create-user', requireAuth, async (req, res) => {
       passwordExpiresAt = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
     }
     const insertQuery = `
-      INSERT INTO ZAINSUPPORTUSERS (USER_ID, USERNAME, PASSWORD, ROLE, ACTIVE, PASSWORD_EXPIRES_AT)
-      VALUES (ZAINSUPPORTUSERS_SEQ.NEXTVAL, :username, :password, :role, 1, TO_TIMESTAMP(:passwordExpiresAt, 'YYYY-MM-DD HH24:MI:SS'))
+      INSERT INTO ZAINSUPPORTUSERS (USER_ID, USERNAME, PASSWORD, ROLE, ACTIVE, PASSWORD_EXPIRES_AT, PASSWORD_UPDATED_AT, CREATED_AT)
+      VALUES (:userId, :username, :password, :role, 1, TO_TIMESTAMP(:passwordExpiresAt, 'YYYY-MM-DD HH24:MI:SS'), SYSTIMESTAMP, SYSTIMESTAMP)
     `;
     await connection.execute(
       insertQuery,
       {
+        userId: nextUserId,
         username: username.toLowerCase(),
         password: hashedPassword,
         role: role.toLowerCase(),
-        passwordExpiresAt
+        passwordExpiresAt: passwordExpiresAt || null
       },
       { autoCommit: true }
     );
@@ -6613,10 +6619,10 @@ app.post('/api/support-questions', requireAuth, async (req, res) => {
       });
     }
 
-    // First, get the next sequence value
-    const seqQuery = `SELECT ZAIN_SUPPORT_ASKED_QUESTIONS_SEQ.NEXTVAL as nextId FROM DUAL`;
-    const seqResult = await connection.execute(seqQuery);
-    const questionId = seqResult.rows[0][0];
+    // Get the next ID manually (without relying on sequence due to permission issues)
+    const maxIdQuery = `SELECT MAX(QUESTION_ID) as maxId FROM ZAIN_SUPPORT_ASKED_QUESTIONS`;
+    const maxIdResult = await connection.execute(maxIdQuery);
+    const questionId = (maxIdResult.rows[0][0] || 0) + 1;
     
     console.log(`[${new Date().toISOString()}] Generated QUESTION_ID: ${questionId}`);
 
@@ -6965,15 +6971,21 @@ app.post('/api/support-replies', requireAuth, async (req, res) => {
     
     console.log(`[${new Date().toISOString()}] Looking for QUESTION_ID = ${questionId} (type: ${typeof questionId})`);
 
+    // Get the next REPLY_ID manually (without relying on sequence due to permission issues)
+    const maxReplyIdQuery = `SELECT MAX(REPLY_ID) as maxId FROM SUPPORT_REPLIES`;
+    const maxReplyIdResult = await connection.execute(maxReplyIdQuery);
+    const nextReplyId = (maxReplyIdResult.rows[0][0] || 0) + 1;
+
     const insertQuery = `
       INSERT INTO SUPPORT_REPLIES (REPLY_ID, QUESTION_ID, REPLY_TEXT, REPLIED_BY)
-      VALUES (SUPPORT_REPLIES_SEQ.NEXTVAL, :questionId, :replyText, :repliedBy)
+      VALUES (:replyId, :questionId, :replyText, :repliedBy)
     `;
 
     try {
       const result = await connection.execute(
         insertQuery,
         {
+          replyId: nextReplyId,
           questionId: questionId,
           replyText: replyText,
           repliedBy: repliedBy
