@@ -4256,7 +4256,7 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
         '031': 'SMS',
         '029': 'VOICE',
         '002': 'VOICE',
-        '018': 'DATA',
+        '18': 'DATA',
         '001': 'VOICE',
         '030': 'SMS'
       };
@@ -4268,7 +4268,7 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
         '031': 'OUTGOING',
         '029': 'CALL_FORWARDING',
         '002': 'INCOMING',
-        '018': 'DATA',
+        '18': 'DATA',
         '001': 'OUTGOING',
         '030': 'INCOMING'
       };
@@ -4276,6 +4276,7 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
     };
 
     const getDestination = (msisdn) => {
+      if (!msisdn) return 'Any Destination';
       if (msisdn.startsWith('00254')) return 'Kenya';
       if (msisdn.startsWith('00250')) return 'Rwanda';
       if (msisdn.startsWith('00256')) return 'Uganda';
@@ -4353,11 +4354,6 @@ app.post('/api/generate-account-cdrs', requireAuth, async (req, res) => {
       const currency = row[8];
 
       worksheet.addRow([trandate, service, chargedMsisdn, roaming, direction, destMsisdn, duration, destination, dataUsage, cost, currency]);
-
-      // Clear worksheet cache periodically to reduce memory
-      if ((i + 1) % batchSize === 0) {
-        worksheet.commit();
-      }
     }
 
     // OPTIMIZED: Set practical column widths
