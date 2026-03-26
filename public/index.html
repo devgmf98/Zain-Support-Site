@@ -19,6 +19,62 @@
             display: flex;
         }
 
+        /* Shimmer Loading Effect for Cards */
+        @keyframes shimmer {
+            0% {
+                background-position: -1000px 0;
+            }
+            100% {
+                background-position: 1000px 0;
+            }
+        }
+
+        /* Sidebar Shimmer Effect */
+        .sidebar-shimmer-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 0 10px;
+            opacity: 1;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .sidebar-shimmer-container.hide {
+            opacity: 0;
+            display: none;
+        }
+
+        .sidebar-shimmer-line {
+            background: linear-gradient(90deg, #f0f0f0 0%, #e0e0e0 10%, #f0f0f0 20%, #f0f0f0 100%);
+            background-size: 1000px 100%;
+            animation: shimmer 2s infinite;
+            height: 36px;
+            border-radius: 6px;
+            opacity: 0.8;
+        }
+
+        .sidebar-nav-content {
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+            pointer-events: none;
+        }
+
+        .sidebar-nav-content.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .user-info-content {
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+            pointer-events: none;
+        }
+
+        .user-info-content.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
         .sidebar {
             width: 240px;
             background: #ffffff;
@@ -73,6 +129,10 @@
         .sidebar-nav {
             flex: 1;
             overflow-y: auto;
+        }
+
+        .sidebar-nav.with-shimmer {
+            position: relative;
         }
 
         .nav-section {
@@ -606,7 +666,21 @@
             <h1>Zain Support <span>v1.0</span></h1>
         </div>
 
-        <nav class="sidebar-nav">
+        <!-- Sidebar Shimmer Loading -->
+        <div class="sidebar-shimmer-container" id="sidebarShimmer">
+            <div class="sidebar-shimmer-line"></div>
+            <div class="sidebar-shimmer-line"></div>
+            <div class="sidebar-shimmer-line"></div>
+            <div class="sidebar-shimmer-line"></div>
+            <div class="sidebar-shimmer-line"></div>
+            <div class="sidebar-shimmer-line"></div>
+            <div class="sidebar-shimmer-line"></div>
+            <div class="sidebar-shimmer-line"></div>
+            <div class="sidebar-shimmer-line"></div>
+            <div class="sidebar-shimmer-line"></div>
+        </div>
+
+        <nav class="sidebar-nav sidebar-nav-content" id="sidebarNavContent">
             <!-- Main Navigation Section -->
             <div class="nav-section">
                 <div class="nav-section-title">Tools</div>
@@ -707,13 +781,15 @@
         </nav>
 
         <!-- User Info Section -->
-        <div class="user-info" id="userInfo" style="display: none;">
-            <div class="user-avatar" id="userAvatar">Z</div>
-            <div class="user-details">
-                <span class="user-details-name" id="currentUser">User</span>
-                <span class="user-details-email" id="currentEmail">email@zain.com</span>
+        <div class="user-info-content" id="userInfoContent">
+            <div class="user-info" id="userInfo" style="display: none;">
+                <div class="user-avatar" id="userAvatar">Z</div>
+                <div class="user-details">
+                    <span class="user-details-name" id="currentUser">User</span>
+                    <span class="user-details-email" id="currentEmail">email@zain.com</span>
+                </div>
+                <button class="logout-btn" onclick="logout()" title="Logout">↪</button>
             </div>
-            <button class="logout-btn" onclick="logout()" title="Logout">↪</button>
         </div>
     </div>
 
@@ -2194,6 +2270,22 @@
             settingsIcon.style.transform = isVisible ? 'rotate(0deg)' : 'rotate(180deg)';
         }
 
+        function hideContentShimmer() {
+            const shimmer = document.getElementById('sidebarShimmer');
+            const navContent = document.getElementById('sidebarNavContent');
+            const userInfoContent = document.getElementById('userInfoContent');
+            
+            if (shimmer) {
+                shimmer.classList.add('hide');
+            }
+            if (navContent) {
+                navContent.classList.add('show');
+            }
+            if (userInfoContent) {
+                userInfoContent.classList.add('show');
+            }
+        }
+
         function displayUserInfo(user) {
             const userInfo = document.getElementById('userInfo');
             const currentUser = document.getElementById('currentUser');
@@ -2247,6 +2339,8 @@
                 if (generateCdrNav) generateCdrNav.style.display = 'flex';
                 // Show dashboard as the main page for admins
                 switchTab('dashboard');
+                // Hide the content shimmer after setting up visibility for admin
+                hideContentShimmer();
             } else if (user.role === 'corporate') {
                 settingsDropdown.style.display = 'none';
                 dashboardNav.style.display = 'none';
@@ -2268,6 +2362,8 @@
                 if (generateCdrNav) generateCdrNav.style.display = 'flex';
                 // Show view details as the main page for corporate users
                 switchTab('view');
+                // Hide the content shimmer after setting up visibility for corporate
+                hideContentShimmer();
             } else {
                 settingsDropdown.style.display = 'none';
                 dashboardNav.style.display = 'none';
@@ -2289,6 +2385,8 @@
                 if (generateCdrNav) generateCdrNav.style.display = 'none';
                 // Show view details as the main page for non-admins
                 switchTab('view');
+                // Hide the content shimmer after setting up visibility for other roles
+                hideContentShimmer();
             }
         }
 
